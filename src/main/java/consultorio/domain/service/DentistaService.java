@@ -1,4 +1,4 @@
-package consultorio.domain.service;
+package consultorio.api.mapper.service;
 
 import consultorio.api.dto.request.DentistaRequest;
 import consultorio.api.dto.response.DentistaResponse;

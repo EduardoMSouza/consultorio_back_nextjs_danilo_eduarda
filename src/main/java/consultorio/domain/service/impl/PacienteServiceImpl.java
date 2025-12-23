@@ -1,4 +1,4 @@
-package consultorio.domain.service.impl;
+package consultorio.api.mapper.service.impl;
 
 import consultorio.api.dto.request.PacienteRequest;
 import consultorio.api.dto.response.PacienteResponse;
@@ -9,7 +9,7 @@ import consultorio.api.mapper.PacienteMapper;
 import consultorio.domain.entity.Paciente;
 
 import consultorio.domain.repository.PacienteRepository;
-import consultorio.domain.service.PacienteService;
+import consultorio.api.mapper.service.PacienteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

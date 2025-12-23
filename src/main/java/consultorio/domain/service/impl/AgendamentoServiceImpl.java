@@ -1,4 +1,4 @@
-package consultorio.domain.service.impl;
+package consultorio.api.mapper.service.impl;
 
 import consultorio.api.dto.request.AgendamentoRequest;
 import consultorio.api.dto.response.AgendamentoResponse;
@@ -13,7 +13,7 @@ import consultorio.domain.entity.Paciente;
 import consultorio.domain.repository.AgendamentoRepository;
 import consultorio.domain.repository.DentistaRepository;
 import consultorio.domain.repository.PacienteRepository;
-import consultorio.domain.service.AgendamentoService;
+import consultorio.api.mapper.service.AgendamentoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

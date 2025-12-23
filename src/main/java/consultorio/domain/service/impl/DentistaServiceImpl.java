@@ -1,4 +1,4 @@
-package consultorio.domain.service.impl;
+package consultorio.api.mapper.service.impl;
 
 import consultorio.api.dto.request.DentistaRequest;
 import consultorio.api.dto.response.DentistaResponse;
@@ -7,7 +7,7 @@ import consultorio.api.exception.ResourceNotFoundException;
 import consultorio.api.mapper.DentistaMapper;
 import consultorio.domain.entity.Dentista;
 import consultorio.domain.repository.DentistaRepository;
-import consultorio.domain.service.DentistaService;
+import consultorio.api.mapper.service.DentistaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
