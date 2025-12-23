@@ -1,7 +1,11 @@
 package consultorio.api.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
+
 public record LoginRequest(
-        String email,
-        String password,
-        boolean rememberMe
+        @NotBlank(message = "Username é obrigatório")
+        String username,
+
+        @NotBlank(message = "Senha é obrigatória")
+        String password
 ) {}

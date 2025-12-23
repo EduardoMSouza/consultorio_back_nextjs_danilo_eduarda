@@ -64,13 +64,6 @@ public class Paciente {
         SOLTEIRO, CASADO, DIVORCIADO, VIUVO, UNIAO_ESTAVEL
     }
 
-    // Relacionamentos
-    @OneToMany(mappedBy = "paciente", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<EvolucaoTratamento> evolucoesTratamento = new ArrayList<>();
-
-    @OneToMany(mappedBy = "paciente", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PlanoDental> planosDentais = new ArrayList<>();
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -82,24 +75,4 @@ public class Paciente {
         updatedAt = LocalDateTime.now();
     }
 
-    // Métodos de conveniência para acesso direto aos dados mais usados
-    public String getNome() {
-        return dadosBasicos != null ? dadosBasicos.getNome() : null;
-    }
-
-    public String getProntuarioNumero() {
-        return dadosBasicos != null ? dadosBasicos.getProntuarioNumero() : null;
-    }
-
-    public String getTelefone() {
-        return dadosBasicos != null ? dadosBasicos.getTelefone() : null;
-    }
-
-    public String getCpf() {
-        return dadosBasicos != null ? dadosBasicos.getCpf() : null;
-    }
-
-    public Boolean getStatus() {
-        return dadosBasicos != null ? dadosBasicos.getStatus() : null;
-    }
 }

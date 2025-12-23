@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "dentistas")
@@ -24,4 +26,9 @@ public class Dentista {
     private String telefone;
     private String email;
     private Boolean ativo = true;
+
+    @OneToMany(mappedBy = "dentista",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    private List<Agendamento> agendamentos = new ArrayList<>();
 }

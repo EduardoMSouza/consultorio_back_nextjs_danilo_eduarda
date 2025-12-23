@@ -2,79 +2,86 @@ package consultorio.domain.service;
 
 import consultorio.api.dto.request.LoginRequest;
 import consultorio.api.dto.request.RefreshTokenRequest;
-import consultorio.api.dto.request.RegisterRequest;
 import consultorio.api.dto.response.LoginResponse;
 import consultorio.api.dto.response.UserResponse;
+import consultorio.api.exception.BusinessException;
+import consultorio.api.mapper.UserMapper;
 import consultorio.domain.entity.User;
 import consultorio.domain.repository.UserRepository;
 import consultorio.infrastructure.secutiry.JwtService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository repository;
     private final JwtService jwtService;
-    private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final UserMapper userMapper;
 
+    @Value("${jwt.expiration:21600000}")
+    private Long jwtExpiration;
+
+    @Transactional
     public LoginResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
+        log.info("Tentativa de login: {}", request.username());
+
+        Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.email(),
+                        request.username(),
                         request.password()
                 )
         );
 
-        User user = repository.findByEmail(request.email())
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        User user = repository.findByUsername(request.username())
+                .orElseThrow(() -> new BusinessException("Usuário não encontrado"));
 
-        String accessToken = jwtService.generateToken(user);
-        String refreshToken = jwtService.generateRefreshToken(user);
-
-        System.out.println("Login feito");
-        return new LoginResponse(accessToken, refreshToken, UserResponse.fromEntity(user));
-    }
-
-    public LoginResponse register(RegisterRequest request) {
-        if (repository.existsByEmail(request.email())) {
-            throw new RuntimeException("Email já cadastrado");
+        if (!user.getAtivo()) {
+            throw new BusinessException("Usuário inativo");
         }
 
-        User user = User.builder()
-                .nome(request.nome())
-                .email(request.email())
-                .password(passwordEncoder.encode(request.password()))
-                .role("USER")
-                .ativo(true)
-                .build();
-
+        user.registrarLogin();
         repository.save(user);
 
         String accessToken = jwtService.generateToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
-        return new LoginResponse(accessToken, refreshToken, UserResponse.fromEntity(user));
+        UserResponse userResponse = userMapper.toResponse(user);
+
+        log.info("Login realizado com sucesso: {}", user.getUsername());
+        return new LoginResponse(accessToken, refreshToken, jwtExpiration, userResponse);
     }
 
+    @Transactional
     public LoginResponse refreshToken(RefreshTokenRequest request) {
-        String email = jwtService.extractUsername(request.refreshToken());
+        String username = jwtService.extractUsername(request.refreshToken());
 
-        User user = repository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        User user = repository.findByUsername(username)
+                .orElseThrow(() -> new BusinessException("Usuário não encontrado"));
 
         if (!jwtService.isTokenValid(request.refreshToken(), user)) {
-            throw new RuntimeException("Refresh token inválido");
+            throw new BusinessException("Refresh token inválido");
+        }
+
+        if (!user.getAtivo()) {
+            throw new BusinessException("Usuário inativo");
         }
 
         String accessToken = jwtService.generateToken(user);
         String newRefreshToken = jwtService.generateRefreshToken(user);
 
-        return new LoginResponse(accessToken, newRefreshToken, UserResponse.fromEntity(user));
+        UserResponse userResponse = userMapper.toResponse(user);
+
+        log.info("Token renovado para: {}", username);
+        return new LoginResponse(accessToken, newRefreshToken, jwtExpiration, userResponse);
     }
 }

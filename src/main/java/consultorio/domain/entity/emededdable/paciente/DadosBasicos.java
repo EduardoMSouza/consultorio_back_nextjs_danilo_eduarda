@@ -26,6 +26,9 @@ public class DadosBasicos {
     @Size(max = 100, message = "Nome deve ter no máximo 100 caracteres")
     private String nome;
 
+    @Column(name = "email_paciente")
+    private String email;
+
     @Column(name = "telefone_paciente")
     private String telefone;
 

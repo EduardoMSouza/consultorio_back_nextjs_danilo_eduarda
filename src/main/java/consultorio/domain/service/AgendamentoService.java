@@ -1,4 +1,4 @@
-package consultorio.api.mapper.service;
+package consultorio.domain.service;
 
 import consultorio.api.dto.request.AgendamentoRequest;
 import consultorio.api.dto.response.AgendamentoResponse;
@@ -8,15 +8,24 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 public interface AgendamentoService {
+
+    // ==================== CRUD BÁSICO ====================
 
     AgendamentoResponse criar(AgendamentoRequest request);
 
     AgendamentoResponse buscarPorId(Long id);
 
     Page<AgendamentoResumoResponse> listarTodos(Pageable pageable);
+
+    AgendamentoResponse atualizar(Long id, AgendamentoRequest request);
+
+    void deletar(Long id);
+
+    // ==================== LISTAGENS POR FILTROS ====================
 
     Page<AgendamentoResumoResponse> listarPorDentista(Long dentistaId, Pageable pageable);
 
@@ -26,13 +35,17 @@ public interface AgendamentoService {
 
     Page<AgendamentoResumoResponse> listarPorPeriodo(LocalDate dataInicio, LocalDate dataFim, Pageable pageable);
 
+    // ==================== AGENDA ====================
+
     List<AgendamentoResumoResponse> buscarAgendaDoDia(Long dentistaId, LocalDate data);
 
     List<AgendamentoResumoResponse> buscarAgendaDoDia(LocalDate data);
 
     List<AgendamentoResumoResponse> buscarProximosAgendamentos(Long pacienteId);
 
-    AgendamentoResponse atualizar(Long id, AgendamentoRequest request);
+    List<AgendamentoResumoResponse> buscarProximosAgendamentosDentista(Long dentistaId);
+
+    // ==================== MUDANÇAS DE STATUS ====================
 
     AgendamentoResponse atualizarStatus(Long id, StatusAgendamento status);
 
@@ -42,11 +55,33 @@ public interface AgendamentoService {
 
     void concluir(Long id);
 
-    void cancelar(Long id);
+    void cancelar(Long id, String motivo);
 
     void marcarFalta(Long id);
 
-    void deletar(Long id);
+    // ==================== VALIDAÇÕES E DISPONIBILIDADE ====================
 
-    boolean verificarDisponibilidade(Long dentistaId, LocalDate data, java.time.LocalTime horaInicio, java.time.LocalTime horaFim);
+    boolean verificarDisponibilidade(Long dentistaId, LocalDate data, LocalTime horaInicio, LocalTime horaFim);
+
+    List<LocalTime[]> buscarHorariosDisponiveis(Long dentistaId, LocalDate data, int duracaoMinutos);
+
+    // ==================== LEMBRETES ====================
+
+    void enviarLembretes(LocalDate data);
+
+    void marcarLembreteEnviado(Long id);
+
+    // ==================== ESTATÍSTICAS ====================
+
+    Long contarConsultasDoDia(Long dentistaId, LocalDate data);
+
+    Long contarFaltasPaciente(Long pacienteId);
+
+    // ==================== CONSULTAS ESPECIAIS ====================
+
+    List<AgendamentoResumoResponse> buscarConsultasPassadasNaoFinalizadas();
+
+    List<AgendamentoResumoResponse> buscarConsultasEmAtendimento();
+
+    Page<AgendamentoResumoResponse> buscarHistoricoConsultasPaciente(Long pacienteId, Pageable pageable);
 }

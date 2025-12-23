@@ -7,16 +7,17 @@ import consultorio.domain.entity.Agendamento;
 import consultorio.domain.entity.Dentista;
 import consultorio.domain.entity.Paciente;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 public class AgendamentoMapper {
-
-    private final ModelMapper modelMapper;
 
     public Agendamento toEntity(AgendamentoRequest request, Dentista dentista, Paciente paciente) {
         Agendamento agendamento = new Agendamento();
@@ -29,6 +30,7 @@ public class AgendamentoMapper {
         agendamento.setTipoProcedimento(request.getTipoProcedimento());
         agendamento.setObservacoes(request.getObservacoes());
         agendamento.setValorConsulta(request.getValorConsulta());
+        agendamento.setAtivo(true);
 
         return agendamento;
     }
@@ -40,12 +42,37 @@ public class AgendamentoMapper {
         response.setDataConsulta(entity.getDataConsulta());
         response.setHoraInicio(entity.getHoraInicio());
         response.setHoraFim(entity.getHoraFim());
+        response.setDuracaoMinutos(entity.getDuracaoEmMinutos());
         response.setStatus(entity.getStatus());
+        response.setStatusDescricao(entity.getStatus() != null ? entity.getStatus().getDescricao() : null);
         response.setTipoProcedimento(entity.getTipoProcedimento());
+        response.setTipoProcedimentoDescricao(entity.getTipoProcedimento() != null ?
+                entity.getTipoProcedimento().getDescricao() : null);
         response.setObservacoes(entity.getObservacoes());
         response.setValorConsulta(entity.getValorConsulta());
-        response.setCreatedAt(entity.getCreatedAt());
-        response.setUpdatedAt(entity.getUpdatedAt());
+
+        // Flags
+        response.setAtivo(entity.getAtivo());
+        response.setPodeSerEditado(entity.isPodeSerEditado());
+        response.setPodeSerCancelado(entity.isPodeSerCancelado());
+        response.setIsFinalizado(entity.isFinalizado());
+        response.setIsHoje(entity.isHoje());
+        response.setIsPassado(entity.isConsultaPassada());
+        response.setLembreteEnviado(entity.getLembreteEnviado());
+
+        // Auditoria
+        response.setCriadoEm(entity.getCriadoEm());
+        response.setAtualizadoEm(entity.getAtualizadoEm());
+        response.setCriadoPor(entity.getCriadoPor());
+        response.setAtualizadoPor(entity.getAtualizadoPor());
+
+        // Confirmação
+        response.setConfirmadoEm(entity.getConfirmadoEm());
+
+        // Cancelamento
+        response.setCanceladoPor(entity.getCanceladoPor());
+        response.setCanceladoEm(entity.getCanceladoEm());
+        response.setMotivoCancelamento(entity.getMotivoCancelamento());
 
         // Dados do Dentista
         if (entity.getDentista() != null) {
@@ -58,9 +85,10 @@ public class AgendamentoMapper {
         // Dados do Paciente
         if (entity.getPaciente() != null) {
             response.setPacienteId(entity.getPaciente().getId());
-            response.setPacienteNome(entity.getPaciente().getNome());
-            response.setPacienteTelefone(entity.getPaciente().getTelefone());
-            response.setPacienteProntuario(entity.getPaciente().getProntuarioNumero());
+            response.setPacienteNome(entity.getPaciente().getDadosBasicos().getNome());
+            response.setPacienteTelefone(entity.getPaciente().getDadosBasicos().getTelefone());
+            response.setPacienteEmail(entity.getPaciente().getDadosBasicos().getEmail());
+            response.setPacienteProntuario(entity.getPaciente().getDadosBasicos().getProntuarioNumero());
         }
 
         return response;
@@ -73,15 +101,29 @@ public class AgendamentoMapper {
         response.setDataConsulta(entity.getDataConsulta());
         response.setHoraInicio(entity.getHoraInicio());
         response.setHoraFim(entity.getHoraFim());
+        response.setDuracaoMinutos(entity.getDuracaoEmMinutos());
         response.setStatus(entity.getStatus());
+        response.setStatusDescricao(entity.getStatus() != null ? entity.getStatus().getDescricao() : null);
         response.setTipoProcedimento(entity.getTipoProcedimento());
+        response.setTipoProcedimentoDescricao(entity.getTipoProcedimento() != null ?
+                entity.getTipoProcedimento().getDescricao() : null);
 
+        // Flags
+        response.setIsHoje(entity.isHoje());
+        response.setIsPassado(entity.isConsultaPassada());
+        response.setLembreteEnviado(entity.getLembreteEnviado());
+
+        // Dados do Dentista
         if (entity.getDentista() != null) {
+            response.setDentistaId(entity.getDentista().getId());
             response.setDentistaNome(entity.getDentista().getNome());
         }
 
+        // Dados do Paciente
         if (entity.getPaciente() != null) {
-            response.setPacienteNome(entity.getPaciente().getNome());
+            response.setPacienteId(entity.getPaciente().getId());
+            response.setPacienteNome(entity.getPaciente().getDadosBasicos().getNome());
+            response.setPacienteTelefone(entity.getPaciente().getDadosBasicos().getTelefone());
         }
 
         return response;
@@ -90,16 +132,17 @@ public class AgendamentoMapper {
     public List<AgendamentoResponse> toResponseList(List<Agendamento> entities) {
         return entities.stream()
                 .map(this::toResponse)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public List<AgendamentoResumoResponse> toResumoResponseList(List<Agendamento> entities) {
         return entities.stream()
                 .map(this::toResumoResponse)
-                .toList();
+                .collect(Collectors.toList());
     }
 
-    public void updateEntityFromRequest(AgendamentoRequest request, Agendamento entity, Dentista dentista, Paciente paciente) {
+    public void updateEntityFromRequest(AgendamentoRequest request, Agendamento entity,
+                                        Dentista dentista, Paciente paciente) {
         entity.setDentista(dentista);
         entity.setPaciente(paciente);
         entity.setDataConsulta(request.getDataConsulta());
