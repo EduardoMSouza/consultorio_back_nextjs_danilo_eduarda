@@ -7,8 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Component
 @RequiredArgsConstructor
 public class UserMapper {
@@ -21,38 +19,35 @@ public class UserMapper {
                 .username(request.username())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
-                .role(request.role())
+                .role(request.role() != null ? request.role() : User.Role.RECEPCIONISTA)
                 .ativo(true)
                 .build();
     }
 
-    public UserResponse toResponse(User entity) {
-        return new UserResponse(
-                entity.getId(),
-                entity.getNome(),
-                entity.getUsername(),
-                entity.getEmail(),
-                entity.getRole(),
-                entity.getAtivo(),
-                entity.getCriadoEm(),
-                entity.getUltimoLogin()
-        );
-    }
-
-    public List<UserResponse> toResponseList(List<User> entities) {
-        return entities.stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-    public void updateEntityFromRequest(UserRequest request, User entity) {
-        entity.setNome(request.nome());
-        entity.setUsername(request.username());
-        entity.setEmail(request.email());
-        entity.setRole(request.role());
-
+    public void updateEntityFromRequest(UserRequest request, User user) {
+        user.setNome(request.nome());
+        user.setUsername(request.username());
+        user.setEmail(request.email());
         if (request.password() != null && !request.password().isBlank()) {
-            entity.setPassword(passwordEncoder.encode(request.password()));
+            user.setPassword(passwordEncoder.encode(request.password()));
         }
+        if (request.role() != null) {
+            user.setRole(request.role());
+        }
+    }
+
+    public UserResponse toResponse(User user) {
+        UserResponse response = new UserResponse();
+        response.setId(user.getId());
+        response.setNome(user.getNome());
+        response.setUsername(user.getUsername());
+        response.setEmail(user.getEmail());
+        response.setRole(user.getRole());
+        response.setAtivo(user.getAtivo());
+        response.setUltimoLogin(user.getUltimoLogin());
+        response.setCriadoEm(user.getCriadoEm());
+        response.setAtualizadoEm(user.getAtualizadoEm());
+        response.setCriadoPor(user.getCriadoPor());
+        return response;
     }
 }

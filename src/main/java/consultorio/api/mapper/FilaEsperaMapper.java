@@ -5,113 +5,104 @@ import consultorio.api.dto.response.FilaEsperaResponse;
 import consultorio.domain.entity.Dentista;
 import consultorio.domain.entity.FilaEspera;
 import consultorio.domain.entity.Paciente;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
-@RequiredArgsConstructor
 public class FilaEsperaMapper {
 
     public FilaEspera toEntity(FilaEsperaRequest request, Paciente paciente, Dentista dentista) {
-        FilaEspera filaEspera = new FilaEspera();
-
-        filaEspera.setPaciente(paciente);
-        filaEspera.setDentista(dentista); // Pode ser null
-        filaEspera.setTipoProcedimento(request.getTipoProcedimento());
-        filaEspera.setDataPreferencial(request.getDataPreferencial());
-        filaEspera.setHoraInicioPreferencial(request.getHoraInicioPreferencial());
-        filaEspera.setHoraFimPreferencial(request.getHoraFimPreferencial());
-        filaEspera.setPeriodoPreferencial(request.getPeriodoPreferencial());
-        filaEspera.setObservacoes(request.getObservacoes());
-        filaEspera.setPrioridade(request.getPrioridade() != null ? request.getPrioridade() : 0);
-        filaEspera.setAceitaQualquerHorario(request.getAceitaQualquerHorario());
-        filaEspera.setAceitaQualquerDentista(request.getAceitaQualquerDentista());
-
-        return filaEspera;
+        FilaEspera fila = new FilaEspera();
+        fila.setPaciente(paciente);
+        fila.setDentista(dentista);
+        fila.setTipoProcedimento(request.getTipoProcedimento());
+        fila.setDataPreferencial(request.getDataPreferencial());
+        fila.setHoraInicioPreferencial(request.getHoraInicioPreferencial());
+        fila.setHoraFimPreferencial(request.getHoraFimPreferencial());
+        fila.setPeriodoPreferencial(request.getPeriodoPreferencial());
+        fila.setObservacoes(request.getObservacoes());
+        fila.setPrioridade(request.getPrioridade() != null ? request.getPrioridade() : 0);
+        fila.setAceitaQualquerHorario(request.getAceitaQualquerHorario() != null ? request.getAceitaQualquerHorario() : false);
+        fila.setAceitaQualquerDentista(request.getAceitaQualquerDentista() != null ? request.getAceitaQualquerDentista() : false);
+        return fila;
     }
 
-    public FilaEsperaResponse toResponse(FilaEspera entity) {
-        return toResponse(entity, null);
+    public void updateEntityFromRequest(FilaEsperaRequest request, FilaEspera fila, Paciente paciente, Dentista dentista) {
+        fila.setPaciente(paciente);
+        fila.setDentista(dentista);
+        fila.setTipoProcedimento(request.getTipoProcedimento());
+        fila.setDataPreferencial(request.getDataPreferencial());
+        fila.setHoraInicioPreferencial(request.getHoraInicioPreferencial());
+        fila.setHoraFimPreferencial(request.getHoraFimPreferencial());
+        fila.setPeriodoPreferencial(request.getPeriodoPreferencial());
+        fila.setObservacoes(request.getObservacoes());
+        fila.setPrioridade(request.getPrioridade() != null ? request.getPrioridade() : fila.getPrioridade());
+        fila.setAceitaQualquerHorario(request.getAceitaQualquerHorario() != null ? request.getAceitaQualquerHorario() : fila.getAceitaQualquerHorario());
+        fila.setAceitaQualquerDentista(request.getAceitaQualquerDentista() != null ? request.getAceitaQualquerDentista() : fila.getAceitaQualquerDentista());
     }
 
-    public FilaEsperaResponse toResponse(FilaEspera entity, Integer posicaoFila) {
-        FilaEsperaResponse response = new FilaEsperaResponse();
+    public FilaEsperaResponse toResponse(FilaEspera f) {
+        FilaEsperaResponse r = new FilaEsperaResponse();
+        r.setId(f.getId());
 
-        response.setId(entity.getId());
-        response.setTipoProcedimento(entity.getTipoProcedimento());
-        response.setTipoProcedimentoDescricao(entity.getTipoProcedimento() != null ?
-                entity.getTipoProcedimento().getDescricao() : null);
-        response.setDataPreferencial(entity.getDataPreferencial());
-        response.setHoraInicioPreferencial(entity.getHoraInicioPreferencial());
-        response.setHoraFimPreferencial(entity.getHoraFimPreferencial());
-        response.setPeriodoPreferencial(entity.getPeriodoPreferencial());
-        response.setPeriodoPreferencialDescricao(entity.getPeriodoPreferencial() != null ?
-                entity.getPeriodoPreferencial().getDescricao() : null);
-        response.setStatus(entity.getStatus());
-        response.setStatusDescricao(entity.getStatus() != null ? entity.getStatus().getDescricao() : null);
-        response.setObservacoes(entity.getObservacoes());
-        response.setPrioridade(entity.getPrioridade());
-        response.setAceitaQualquerHorario(entity.getAceitaQualquerHorario());
-        response.setAceitaQualquerDentista(entity.getAceitaQualquerDentista());
+        // Paciente
+        if (f.getPaciente() != null) {
+            r.setPacienteId(f.getPaciente().getId());
+            r.setPacienteNome(f.getPaciente().getDadosBasicos().getNome());
+            r.setPacienteTelefone(f.getPaciente().getDadosBasicos().getTelefone());
+            r.setPacienteEmail(f.getPaciente().getDadosBasicos().getEmail());
+        }
 
-        // Auditoria
-        response.setCriadoEm(entity.getCriadoEm());
-        response.setAtualizadoEm(entity.getAtualizadoEm());
-        response.setCriadoPor(entity.getCriadoPor());
+        // Dentista
+        if (f.getDentista() != null) {
+            r.setDentistaId(f.getDentista().getId());
+            r.setDentistaNome(f.getDentista().getNome());
+        }
 
-        // Conversão
-        response.setAgendamentoId(entity.getAgendamento() != null ? entity.getAgendamento().getId() : null);
-        response.setConvertidoEm(entity.getConvertidoEm());
+        // Preferências
+        r.setTipoProcedimento(f.getTipoProcedimento());
+        r.setTipoProcedimentoDescricao(f.getTipoProcedimento() != null ? f.getTipoProcedimento().getDescricao() : null);
+        r.setDataPreferencial(f.getDataPreferencial());
+        r.setHoraInicioPreferencial(f.getHoraInicioPreferencial());
+        r.setHoraFimPreferencial(f.getHoraFimPreferencial());
+        r.setPeriodoPreferencial(f.getPeriodoPreferencial());
+        r.setPeriodoPreferencialDescricao(f.getPeriodoPreferencial() != null ? f.getPeriodoPreferencial().getDescricao() : null);
 
-        // Notificação
-        response.setNotificado(entity.getNotificado());
-        response.setNotificadoEm(entity.getNotificadoEm());
-        response.setTentativasContato(entity.getTentativasContato());
-        response.setUltimaTentativaContato(entity.getUltimaTentativaContato());
+        // Status
+        r.setStatus(f.getStatus());
+        r.setStatusDescricao(f.getStatus().getDescricao());
+        r.setObservacoes(f.getObservacoes());
+        r.setPrioridade(f.getPrioridade());
 
         // Flags
-        response.setIsAtiva(entity.isAtiva());
-        response.setIsExpirada(entity.isExpirado());
-        response.setPosicaoFila(posicaoFila);
+        r.setAceitaQualquerHorario(f.getAceitaQualquerHorario());
+        r.setAceitaQualquerDentista(f.getAceitaQualquerDentista());
+        r.setAtiva(f.isAtiva());
+        r.setExpirada(f.isExpirado());
 
-        // Dados do Paciente
-        if (entity.getPaciente() != null) {
-            response.setPacienteId(entity.getPaciente().getId());
-            response.setPacienteNome(entity.getPaciente().getDadosBasicos().getNome());
-            response.setPacienteTelefone(entity.getPaciente().getDadosBasicos().getTelefone());
-            response.setPacienteEmail(entity.getPaciente().getDadosBasicos().getEmail());
+        // Notificação
+        r.setNotificado(f.getNotificado());
+        r.setNotificadoEm(f.getNotificadoEm());
+        r.setTentativasContato(f.getTentativasContato());
+        r.setUltimaTentativaContato(f.getUltimaTentativaContato());
+
+        // Conversão
+        if (f.getAgendamento() != null) {
+            r.setAgendamentoId(f.getAgendamento().getId());
         }
+        r.setConvertidoEm(f.getConvertidoEm());
 
-        // Dados do Dentista
-        if (entity.getDentista() != null) {
-            response.setDentistaId(entity.getDentista().getId());
-            response.setDentistaNome(entity.getDentista().getNome());
-        }
+        // Auditoria
+        r.setCriadoEm(f.getCriadoEm());
+        r.setAtualizadoEm(f.getAtualizadoEm());
+        r.setCriadoPor(f.getCriadoPor());
 
-        return response;
+        return r;
     }
 
-    public List<FilaEsperaResponse> toResponseList(List<FilaEspera> entities) {
-        return entities.stream()
-                .map(entity -> toResponse(entity, entities.indexOf(entity) + 1))
-                .collect(Collectors.toList());
-    }
-
-    public void updateEntityFromRequest(FilaEsperaRequest request, FilaEspera entity,
-                                        Paciente paciente, Dentista dentista) {
-        entity.setPaciente(paciente);
-        entity.setDentista(dentista);
-        entity.setTipoProcedimento(request.getTipoProcedimento());
-        entity.setDataPreferencial(request.getDataPreferencial());
-        entity.setHoraInicioPreferencial(request.getHoraInicioPreferencial());
-        entity.setHoraFimPreferencial(request.getHoraFimPreferencial());
-        entity.setPeriodoPreferencial(request.getPeriodoPreferencial());
-        entity.setObservacoes(request.getObservacoes());
-        entity.setPrioridade(request.getPrioridade() != null ? request.getPrioridade() : entity.getPrioridade());
-        entity.setAceitaQualquerHorario(request.getAceitaQualquerHorario());
-        entity.setAceitaQualquerDentista(request.getAceitaQualquerDentista());
+    public List<FilaEsperaResponse> toResponseList(List<FilaEspera> filas) {
+        return filas.stream().map(this::toResponse).collect(Collectors.toList());
     }
 }

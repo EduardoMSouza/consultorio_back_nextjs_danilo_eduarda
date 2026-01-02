@@ -3,7 +3,6 @@ package consultorio.api.dto.request;
 import consultorio.domain.entity.User.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record UserRequest(
@@ -20,10 +19,8 @@ public record UserRequest(
         @Size(max = 100, message = "Email deve ter no máximo 100 caracteres")
         String email,
 
-        @NotBlank(message = "Senha é obrigatória")
         @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
         String password,
 
-        @NotNull(message = "Role é obrigatório")
         Role role
 ) {}

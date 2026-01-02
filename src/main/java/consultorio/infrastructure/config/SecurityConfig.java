@@ -1,7 +1,7 @@
 package consultorio.infrastructure.config;
 
 
-import consultorio.infrastructure.secutiry.JwtAuthenticationFilter;
+import consultorio.infrastructure.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

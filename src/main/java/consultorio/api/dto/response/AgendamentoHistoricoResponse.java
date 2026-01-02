@@ -1,24 +1,31 @@
 package consultorio.api.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import consultorio.domain.entity.Agendamento.StatusAgendamento;
 import consultorio.domain.entity.AgendamentoHistorico.TipoAcao;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-public record AgendamentoHistoricoResponse(
-        Long id,
-        Long agendamentoId,
-        TipoAcao acao,
-        String acaoDescricao,
-        StatusAgendamento statusAnterior,
-        StatusAgendamento statusNovo,
-        String usuarioResponsavel,
-        String descricao,
-        String detalhes,
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class AgendamentoHistoricoResponse {
 
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-        LocalDateTime dataHora,
-
-        String ipOrigem
-) {}
+    private Long id;
+    private Long agendamentoId;
+    private TipoAcao acao;
+    private String acaoDescricao;
+    private StatusAgendamento statusAnterior;
+    private String statusAnteriorDescricao;
+    private StatusAgendamento statusNovo;
+    private String statusNovoDescricao;
+    private String usuarioResponsavel;
+    private String descricao;
+    private String detalhes;
+    private LocalDateTime dataHora;
+    private String ipOrigem;
+}

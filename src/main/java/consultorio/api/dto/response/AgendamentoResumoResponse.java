@@ -1,6 +1,5 @@
 package consultorio.api.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import consultorio.domain.entity.Agendamento.StatusAgendamento;
 import consultorio.domain.entity.Agendamento.TipoProcedimento;
 import lombok.AllArgsConstructor;
@@ -18,6 +17,10 @@ import java.time.LocalTime;
 public class AgendamentoResumoResponse {
 
     private Long id;
+    private LocalDate dataConsulta;
+    private LocalTime horaInicio;
+    private LocalTime horaFim;
+    private Long duracaoMinutos;
 
     private Long dentistaId;
     private String dentistaNome;
@@ -26,24 +29,11 @@ public class AgendamentoResumoResponse {
     private String pacienteNome;
     private String pacienteTelefone;
 
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate dataConsulta;
-
-    @JsonFormat(pattern = "HH:mm")
-    private LocalTime horaInicio;
-
-    @JsonFormat(pattern = "HH:mm")
-    private LocalTime horaFim;
-
-    private Long duracaoMinutos;
-
     private StatusAgendamento status;
     private String statusDescricao;
-
     private TipoProcedimento tipoProcedimento;
     private String tipoProcedimentoDescricao;
 
-    private Boolean isHoje;
-    private Boolean isPassado;
-    private Boolean lembreteEnviado;
+    private Boolean confirmado;
+    private Boolean hoje;
 }

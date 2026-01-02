@@ -1,4 +1,4 @@
-package consultorio.infrastructure.secutiry;
+package consultorio.infrastructure.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

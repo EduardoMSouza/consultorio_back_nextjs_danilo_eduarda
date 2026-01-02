@@ -3,78 +3,76 @@ package consultorio.domain.service;
 import consultorio.api.dto.request.FilaEsperaRequest;
 import consultorio.api.dto.response.FilaEsperaResponse;
 import consultorio.domain.entity.Agendamento;
+import consultorio.domain.entity.Agendamento.TipoProcedimento;
 import consultorio.domain.entity.FilaEspera.StatusFila;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 public interface FilaEsperaService {
 
-    // ==================== CRUD BÁSICO ====================
+    // ==================== CRUD ====================
 
     FilaEsperaResponse criar(FilaEsperaRequest request);
 
     FilaEsperaResponse buscarPorId(Long id);
 
-    List<FilaEsperaResponse> listarTodas();
-
-    Page<FilaEsperaResponse> listarTodas(Pageable pageable);
-
     FilaEsperaResponse atualizar(Long id, FilaEsperaRequest request);
 
     void deletar(Long id);
 
-    // ==================== LISTAGENS POR FILTROS ====================
+    // ==================== LISTAGENS ====================
 
-    List<FilaEsperaResponse> listarAtivas();
+    Page<FilaEsperaResponse> listarTodas(Pageable pageable);
 
-    List<FilaEsperaResponse> listarPorDentista(Long dentistaId);
-
-    List<FilaEsperaResponse> listarPorPaciente(Long pacienteId);
-
-    List<FilaEsperaResponse> listarPorPacienteAtivas(Long pacienteId);
+    Page<FilaEsperaResponse> listarAtivas(Pageable pageable);
 
     Page<FilaEsperaResponse> listarPorStatus(StatusFila status, Pageable pageable);
 
-    // ==================== GERENCIAMENTO DE FILA ====================
+    List<FilaEsperaResponse> listarAtivasPorDentista(Long dentistaId);
 
-    void notificar(Long id);
+    List<FilaEsperaResponse> listarPorPaciente(Long pacienteId);
 
-    void converterEmAgendamento(Long filaEsperaId, Long agendamentoId);
+    List<FilaEsperaResponse> listarAtivasPorPaciente(Long pacienteId);
 
-    void cancelar(Long id);
+    // ==================== AÇÕES ====================
 
-    void processarFilaAutomaticamente();
+    FilaEsperaResponse notificar(Long id);
 
-    void processarFilaAposCriacao(Agendamento agendamento);
+    FilaEsperaResponse cancelar(Long id);
+
+    FilaEsperaResponse converterEmAgendamento(Long filaId, Long agendamentoId);
+
+    void incrementarTentativaContato(Long id);
+
+    // ==================== PROCESSAMENTO AUTOMÁTICO ====================
 
     void processarFilaAposCancelamento(Agendamento agendamento);
 
     void processarFilaAposConclusao(Agendamento agendamento);
 
-    void expirarFilasAnteriores();
+    int expirarFilasVencidas();
 
-    // ==================== BUSCAR COMPATÍVEIS ====================
+    int enviarNotificacoesPendentes();
 
-    List<FilaEsperaResponse> buscarCompativeisComAgendamento(Long dentistaId,
-                                                             LocalDate data,
-                                                             Agendamento.TipoProcedimento tipoProcedimento);
+    // ==================== COMPATÍVEIS ====================
 
-    List<FilaEsperaResponse> buscarCompativeisComDentista(Long dentistaId);
+    List<FilaEsperaResponse> buscarCompativeis(Long dentistaId, LocalDate data, TipoProcedimento tipoProcedimento);
+
+    List<FilaEsperaResponse> buscarCompatíveisPorDentista(Long dentistaId);
 
     // ==================== ESTATÍSTICAS ====================
 
-    Long contarAtivasPorDentista(Long dentistaId);
+    Map<String, Object> obterEstatisticas();
 
-    Long contarTotalAtivas();
+    long contarAtivas();
 
-    Long contarAtivasPorPaciente(Long pacienteId);
+    long contarAtivasPorDentista(Long dentistaId);
 
-    // ==================== NOTIFICAÇÕES ====================
+    long contarAtivasPorPaciente(Long pacienteId);
 
-    void enviarNotificacoesPendentes();
-
-    void incrementarTentativaContato(Long id);
+    int calcularPosicao(Long filaId);
 }

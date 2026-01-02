@@ -5,13 +5,26 @@ import consultorio.api.dto.response.DentistaResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Map;
+
 public interface DentistaService {
+
+    // ==================== CRUD ====================
 
     DentistaResponse criar(DentistaRequest request);
 
     DentistaResponse buscarPorId(Long id);
 
     DentistaResponse buscarPorCro(String cro);
+
+    DentistaResponse atualizar(Long id, DentistaRequest request);
+
+    void deletar(Long id);
+
+    // ==================== LISTAGENS ====================
 
     Page<DentistaResponse> listarTodos(Pageable pageable);
 
@@ -21,11 +34,33 @@ public interface DentistaService {
 
     Page<DentistaResponse> buscar(String termo, Pageable pageable);
 
-    DentistaResponse atualizar(Long id, DentistaRequest request);
+    Page<DentistaResponse> buscar(String termo, Boolean ativo, Pageable pageable);
 
-    void inativar(Long id);
+    List<DentistaResponse> listarAtivos();
+
+    // ==================== STATUS ====================
 
     void ativar(Long id);
 
-    void deletar(Long id);
+    void inativar(Long id);
+
+    void alterarStatusEmLote(List<Long> ids, Boolean ativo);
+
+    // ==================== DISPONIBILIDADE ====================
+
+    List<DentistaResponse> buscarDisponiveis(LocalDate data, LocalTime horaInicio, LocalTime horaFim);
+
+    boolean verificarDisponibilidade(Long id, LocalDate data, LocalTime horaInicio, LocalTime horaFim);
+
+    // ==================== ESTATÍSTICAS ====================
+
+    Map<String, Object> obterEstatisticas();
+
+    List<String> listarEspecialidades();
+
+    List<Map<String, Object>> listarAgendaDoDia(LocalDate data);
+
+    // ==================== AUTOCOMPLETE ====================
+
+    List<Map<String, Object>> autocompleteNome(String prefix);
 }

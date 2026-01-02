@@ -6,10 +6,12 @@ import consultorio.api.exception.BusinessException;
 import consultorio.api.exception.ResourceNotFoundException;
 import consultorio.api.mapper.FilaEsperaMapper;
 import consultorio.domain.entity.Agendamento;
+import consultorio.domain.entity.Agendamento.TipoProcedimento;
 import consultorio.domain.entity.Dentista;
 import consultorio.domain.entity.FilaEspera;
 import consultorio.domain.entity.FilaEspera.StatusFila;
 import consultorio.domain.entity.Paciente;
+import consultorio.domain.repository.AgendamentoRepository;
 import consultorio.domain.repository.DentistaRepository;
 import consultorio.domain.repository.FilaEsperaRepository;
 import consultorio.domain.repository.PacienteRepository;
@@ -18,249 +20,203 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class FilaEsperaServiceImpl implements FilaEsperaService {
 
     private final FilaEsperaRepository repository;
     private final PacienteRepository pacienteRepository;
     private final DentistaRepository dentistaRepository;
+    private final AgendamentoRepository agendamentoRepository;
     private final FilaEsperaMapper mapper;
 
-    private static final int MAX_TENTATIVAS_CONTATO = 3;
-    private static final int DIAS_PARA_NOTIFICACAO_NOVAMENTE = 2;
+    private static final int MAX_TENTATIVAS = 3;
+
+    // ==================== CRUD ====================
 
     @Override
     @Transactional
     public FilaEsperaResponse criar(FilaEsperaRequest request) {
-        log.info("Criando fila de espera para paciente {}", request.getPacienteId());
+        Paciente paciente = findPaciente(request.getPacienteId());
+        Dentista dentista = request.getDentistaId() != null ? findDentista(request.getDentistaId()) : null;
 
-        Paciente paciente = findPacienteById(request.getPacienteId());
-        Dentista dentista = request.getDentistaId() != null ?
-                findDentistaById(request.getDentistaId()) : null;
+        validarDuplicidade(request.getPacienteId(), request.getDentistaId());
 
-        // Validações
-        if (dentista != null) {
-            validarDentistaAtivo(dentista);
+        if (dentista != null && !dentista.getAtivo()) {
+            throw new BusinessException("Dentista está inativo");
         }
 
-        validarPacienteNaoTemFilaAtiva(request.getPacienteId(), request.getDentistaId());
+        FilaEspera fila = mapper.toEntity(request, paciente, dentista);
+        fila.setCriadoPor(getUsuarioLogado());
+        fila = repository.save(fila);
 
-        // Criar fila de espera
-        FilaEspera filaEspera = mapper.toEntity(request, paciente, dentista);
-        filaEspera = repository.save(filaEspera);
-
-        log.info("Fila de espera {} criada com sucesso", filaEspera.getId());
-        return mapper.toResponse(filaEspera);
+        log.info("Fila de espera criada: id={}, paciente={}", fila.getId(), paciente.getDadosBasicos().getNome());
+        return mapper.toResponse(fila);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public FilaEsperaResponse buscarPorId(Long id) {
-        FilaEspera filaEspera = findById(id);
-        return mapper.toResponse(filaEspera);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<FilaEsperaResponse> listarTodas() {
-        List<FilaEspera> filas = repository.findAll();
-        return mapper.toResponseList(filas);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<FilaEsperaResponse> listarTodas(Pageable pageable) {
-        return repository.findAll(pageable)
-                .map(mapper::toResponse);
+        FilaEspera fila = findById(id);
+        FilaEsperaResponse response = mapper.toResponse(fila);
+        response.setPosicaoFila(calcularPosicao(id));
+        return response;
     }
 
     @Override
     @Transactional
     public FilaEsperaResponse atualizar(Long id, FilaEsperaRequest request) {
-        log.info("Atualizando fila de espera {}", id);
+        FilaEspera fila = findById(id);
 
-        FilaEspera filaEspera = findById(id);
-
-        if (!filaEspera.isAtiva()) {
-            throw new BusinessException("Não é possível atualizar uma fila de espera inativa");
+        if (!fila.isAtiva()) {
+            throw new BusinessException("Não é possível atualizar fila inativa");
         }
 
-        Paciente paciente = findPacienteById(request.getPacienteId());
-        Dentista dentista = request.getDentistaId() != null ?
-                findDentistaById(request.getDentistaId()) : null;
+        Paciente paciente = findPaciente(request.getPacienteId());
+        Dentista dentista = request.getDentistaId() != null ? findDentista(request.getDentistaId()) : null;
 
-        if (dentista != null) {
-            validarDentistaAtivo(dentista);
-        }
+        mapper.updateEntityFromRequest(request, fila, paciente, dentista);
+        fila = repository.save(fila);
 
-        mapper.updateEntityFromRequest(request, filaEspera, paciente, dentista);
-        filaEspera = repository.save(filaEspera);
-
-        log.info("Fila de espera {} atualizada com sucesso", id);
-        return mapper.toResponse(filaEspera);
+        log.info("Fila de espera atualizada: id={}", id);
+        return mapper.toResponse(fila);
     }
 
     @Override
     @Transactional
     public void deletar(Long id) {
-        log.info("Deletando fila de espera {}", id);
-
         if (!repository.existsById(id)) {
-            throw new ResourceNotFoundException("Fila de espera não encontrada com id: " + id);
+            throw new ResourceNotFoundException("Fila de espera não encontrada: " + id);
         }
-
         repository.deleteById(id);
-        log.info("Fila de espera {} deletada com sucesso", id);
+        log.info("Fila de espera deletada: id={}", id);
+    }
+
+    // ==================== LISTAGENS ====================
+
+    @Override
+    public Page<FilaEsperaResponse> listarTodas(Pageable pageable) {
+        return repository.findAll(pageable).map(mapper::toResponse);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<FilaEsperaResponse> listarAtivas() {
-        List<FilaEspera> filas = repository.findAllAtivas();
-        return mapper.toResponseList(filas);
+    public Page<FilaEsperaResponse> listarAtivas(Pageable pageable) {
+        return repository.findAllAtivas(pageable).map(mapper::toResponse);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<FilaEsperaResponse> listarPorDentista(Long dentistaId) {
-        List<FilaEspera> filas = repository.findByDentistaAtivas(dentistaId);
-        return mapper.toResponseList(filas);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<FilaEsperaResponse> listarPorPaciente(Long pacienteId) {
-        List<FilaEspera> filas = repository.findByPaciente(pacienteId);
-        return mapper.toResponseList(filas);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<FilaEsperaResponse> listarPorPacienteAtivas(Long pacienteId) {
-        List<FilaEspera> filas = repository.findByPacienteAtivas(pacienteId);
-        return mapper.toResponseList(filas);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public Page<FilaEsperaResponse> listarPorStatus(StatusFila status, Pageable pageable) {
-        return repository.findByStatus(status, pageable)
-                .map(mapper::toResponse);
+        return repository.findByStatus(status, pageable).map(mapper::toResponse);
     }
 
     @Override
+    public List<FilaEsperaResponse> listarAtivasPorDentista(Long dentistaId) {
+        return mapper.toResponseList(repository.findAtivasByDentista(dentistaId));
+    }
+
+    @Override
+    public List<FilaEsperaResponse> listarPorPaciente(Long pacienteId) {
+        return mapper.toResponseList(repository.findByPaciente(pacienteId));
+    }
+
+    @Override
+    public List<FilaEsperaResponse> listarAtivasPorPaciente(Long pacienteId) {
+        return mapper.toResponseList(repository.findAtivasByPaciente(pacienteId));
+    }
+
+    // ==================== AÇÕES ====================
+
+    @Override
     @Transactional
-    public void notificar(Long id) {
-        log.info("Notificando paciente da fila de espera {}", id);
+    public FilaEsperaResponse notificar(Long id) {
+        FilaEspera fila = findById(id);
 
-        FilaEspera filaEspera = findById(id);
-
-        if (!filaEspera.podeSerNotificado()) {
-            throw new BusinessException("Fila de espera não pode ser notificada no momento");
+        if (!fila.isAtiva()) {
+            throw new BusinessException("Fila não está ativa para notificação");
         }
 
-        filaEspera.notificar();
-        repository.save(filaEspera);
+        repository.marcarNotificado(id, LocalDateTime.now());
 
-        // Aqui você implementaria o envio da notificação (email, SMS, etc)
-        log.info("Notificação enviada para fila de espera {}", id);
+        // Aqui implementaria envio real (email, SMS)
+        log.info("Paciente notificado: fila={}, paciente={}", id, fila.getPaciente().getDadosBasicos().getNome());
+
+        return buscarPorId(id);
     }
 
     @Override
     @Transactional
-    public void converterEmAgendamento(Long filaEsperaId, Long agendamentoId) {
-        log.info("Convertendo fila de espera {} em agendamento {}", filaEsperaId, agendamentoId);
+    public FilaEsperaResponse cancelar(Long id) {
+        FilaEspera fila = findById(id);
 
-        FilaEspera filaEspera = findById(filaEsperaId);
-
-        if (!filaEspera.isAtiva()) {
-            throw new BusinessException("Fila de espera não está ativa");
+        if (!fila.isAtiva()) {
+            throw new BusinessException("Fila já está finalizada");
         }
 
-        // Assumindo que o agendamento já foi criado
-        filaEspera.setStatus(StatusFila.CONVERTIDO);
-        filaEspera.setConvertidoEm(LocalDateTime.now());
-        repository.save(filaEspera);
+        fila.cancelar();
+        repository.save(fila);
 
-        log.info("Fila de espera {} convertida com sucesso", filaEsperaId);
+        log.info("Fila de espera cancelada: id={}", id);
+        return mapper.toResponse(fila);
     }
 
     @Override
     @Transactional
-    public void cancelar(Long id) {
-        log.info("Cancelando fila de espera {}", id);
+    public FilaEsperaResponse converterEmAgendamento(Long filaId, Long agendamentoId) {
+        FilaEspera fila = findById(filaId);
 
-        FilaEspera filaEspera = findById(id);
-        filaEspera.cancelar();
-        repository.save(filaEspera);
-
-        log.info("Fila de espera {} cancelada com sucesso", id);
-    }
-
-    @Override
-    @Transactional
-    public void processarFilaAutomaticamente() {
-        log.info("Processando fila de espera automaticamente");
-
-        List<FilaEspera> filasAtivas = repository.findAllAtivas();
-
-        for (FilaEspera fila : filasAtivas) {
-            try {
-                // Verificar se o paciente ainda está disponível
-                // Verificar se há horários disponíveis
-                // Notificar paciente se encontrar horário disponível
-
-                if (fila.podeSerNotificado()) {
-                    notificar(fila.getId());
-                }
-            } catch (Exception e) {
-                log.error("Erro ao processar fila de espera {}", fila.getId(), e);
-            }
+        if (!fila.isAtiva()) {
+            throw new BusinessException("Fila não está ativa para conversão");
         }
 
-        log.info("Processamento automático da fila concluído");
+        Agendamento agendamento = agendamentoRepository.findByIdAtivo(agendamentoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado: " + agendamentoId));
+
+        fila.converterEmAgendamento(agendamento);
+        repository.save(fila);
+
+        log.info("Fila convertida em agendamento: fila={}, agendamento={}", filaId, agendamentoId);
+        return mapper.toResponse(fila);
     }
 
     @Override
     @Transactional
-    public void processarFilaAposCriacao(Agendamento agendamento) {
-        // Implementar lógica para verificar se há outros pacientes na fila
-        // que poderiam ser encaixados nos horários livres restantes
-        log.debug("Processando fila após criação do agendamento {}", agendamento.getId());
+    public void incrementarTentativaContato(Long id) {
+        repository.incrementarTentativa(id, LocalDateTime.now());
+        log.debug("Tentativa de contato incrementada: fila={}", id);
     }
+
+    // ==================== PROCESSAMENTO AUTOMÁTICO ====================
 
     @Override
     @Transactional
     public void processarFilaAposCancelamento(Agendamento agendamento) {
-        log.info("Processando fila após cancelamento do agendamento {}", agendamento.getId());
+        log.info("Processando fila após cancelamento: agendamento={}", agendamento.getId());
 
-        // Buscar filas compatíveis com o horário que ficou disponível
-        List<FilaEspera> filasCompativeis = repository.findCompativeis(
+        List<FilaEspera> compativeis = repository.findCompatíveisParaData(
                 agendamento.getDentista().getId(),
-                agendamento.getDataConsulta(),
-                agendamento.getTipoProcedimento()
+                agendamento.getDataConsulta()
         );
 
-        if (!filasCompativeis.isEmpty()) {
-            // Notificar o primeiro da fila
-            FilaEspera primeiraFila = filasCompativeis.get(0);
-
-            if (primeiraFila.podeSerNotificado()) {
+        if (!compativeis.isEmpty()) {
+            FilaEspera primeira = compativeis.get(0);
+            if (primeira.getStatus() == StatusFila.AGUARDANDO) {
                 try {
-                    notificar(primeiraFila.getId());
-                    log.info("Paciente {} notificado sobre horário disponível",
-                            primeiraFila.getPaciente().getDadosBasicos().getNome());
+                    notificar(primeira.getId());
+                    log.info("Paciente da fila notificado sobre horário disponível: {}", primeira.getId());
                 } catch (Exception e) {
-                    log.error("Erro ao notificar paciente da fila {}", primeiraFila.getId(), e);
+                    log.error("Erro ao notificar paciente da fila: {}", primeira.getId(), e);
                 }
             }
         }
@@ -269,124 +225,147 @@ public class FilaEsperaServiceImpl implements FilaEsperaService {
     @Override
     @Transactional
     public void processarFilaAposConclusao(Agendamento agendamento) {
-        // Similar ao cancelamento, mas pode ter lógicas diferentes
-        log.debug("Processando fila após conclusão do agendamento {}", agendamento.getId());
+        log.debug("Processando fila após conclusão: agendamento={}", agendamento.getId());
+        // Pode implementar lógica específica se necessário
     }
 
     @Override
     @Transactional
-    public void expirarFilasAnteriores() {
-        log.info("Expirando filas de espera antigas");
+    public int expirarFilasVencidas() {
+        List<FilaEspera> expiradas = repository.findExpiradas(LocalDate.now());
 
-        List<FilaEspera> filasExpiradas = repository.findExpiradas(LocalDate.now());
-
-        for (FilaEspera fila : filasExpiradas) {
-            fila.expirar();
-            repository.save(fila);
-            log.info("Fila de espera {} expirada", fila.getId());
+        if (expiradas.isEmpty()) {
+            return 0;
         }
 
-        log.info("Total de {} filas expiradas", filasExpiradas.size());
-    }
+        List<Long> ids = expiradas.stream().map(FilaEspera::getId).collect(Collectors.toList());
+        int total = repository.expirarEmLote(ids, LocalDateTime.now());
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<FilaEsperaResponse> buscarCompativeisComAgendamento(Long dentistaId,
-                                                                    LocalDate data,
-                                                                    Agendamento.TipoProcedimento tipoProcedimento) {
-        List<FilaEspera> filas = repository.findCompativeis(dentistaId, data, tipoProcedimento);
-        return mapper.toResponseList(filas);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<FilaEsperaResponse> buscarCompativeisComDentista(Long dentistaId) {
-        List<FilaEspera> filas = repository.findCompatíveisPorDentista(dentistaId);
-        return mapper.toResponseList(filas);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Long contarAtivasPorDentista(Long dentistaId) {
-        return repository.countAtivasPorDentista(dentistaId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Long contarTotalAtivas() {
-        return repository.countTotalAtivas();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Long contarAtivasPorPaciente(Long pacienteId) {
-        return repository.countAtivasPorPaciente(pacienteId);
+        log.info("Filas expiradas: {}", total);
+        return total;
     }
 
     @Override
     @Transactional
-    public void enviarNotificacoesPendentes() {
-        log.info("Enviando notificações pendentes");
+    public int enviarNotificacoesPendentes() {
+        List<FilaEspera> pendentes = repository.findPendentesNotificacao();
+        int enviados = 0;
 
-        List<FilaEspera> filasPendentes = repository.findPendentesNotificacao();
-
-        for (FilaEspera fila : filasPendentes) {
-            try {
-                if (fila.getTentativasContato() < MAX_TENTATIVAS_CONTATO) {
+        for (FilaEspera fila : pendentes) {
+            if (fila.getTentativasContato() < MAX_TENTATIVAS) {
+                try {
                     notificar(fila.getId());
-                } else {
-                    log.warn("Fila {} atingiu número máximo de tentativas de contato", fila.getId());
+                    enviados++;
+                } catch (Exception e) {
+                    log.error("Erro ao notificar fila: {}", fila.getId(), e);
+                    incrementarTentativaContato(fila.getId());
                 }
-            } catch (Exception e) {
-                log.error("Erro ao enviar notificação para fila {}", fila.getId(), e);
+            } else {
+                log.warn("Fila atingiu máximo de tentativas: {}", fila.getId());
             }
         }
 
-        log.info("Notificações pendentes enviadas");
+        log.info("Notificações enviadas: {}", enviados);
+        return enviados;
+    }
+
+    // ==================== COMPATÍVEIS ====================
+
+    @Override
+    public List<FilaEsperaResponse> buscarCompativeis(Long dentistaId, LocalDate data, TipoProcedimento tipoProcedimento) {
+        return mapper.toResponseList(repository.findCompativeis(dentistaId, data, tipoProcedimento));
     }
 
     @Override
-    @Transactional
-    public void incrementarTentativaContato(Long id) {
-        FilaEspera filaEspera = findById(id);
-        filaEspera.incrementarTentativaContato();
-        repository.save(filaEspera);
+    public List<FilaEsperaResponse> buscarCompatíveisPorDentista(Long dentistaId) {
+        return mapper.toResponseList(repository.findCompatíveisPorDentista(dentistaId));
+    }
+
+    // ==================== ESTATÍSTICAS ====================
+
+    @Override
+    public Map<String, Object> obterEstatisticas() {
+        Map<String, Object> stats = new LinkedHashMap<>();
+
+        stats.put("totalAtivas", repository.countAtivas());
+
+        stats.put("porStatus", repository.countPorStatus().stream()
+                .collect(Collectors.toMap(r -> ((StatusFila) r[0]).name(), r -> r[1])));
+
+        stats.put("porDentista", repository.countAtivasPorDentista().stream()
+                .map(r -> Map.of("id", r[0], "nome", r[1], "total", r[2]))
+                .collect(Collectors.toList()));
+
+        return stats;
+    }
+
+    @Override
+    public long contarAtivas() {
+        return repository.countAtivas();
+    }
+
+    @Override
+    public long contarAtivasPorDentista(Long dentistaId) {
+        return repository.countAtivasByDentista(dentistaId);
+    }
+
+    @Override
+    public long contarAtivasPorPaciente(Long pacienteId) {
+        return repository.countAtivasByPaciente(pacienteId);
+    }
+
+    @Override
+    public int calcularPosicao(Long filaId) {
+        FilaEspera fila = findById(filaId);
+
+        if (!fila.isAtiva()) {
+            return 0;
+        }
+
+        if (fila.getDentista() != null) {
+            return repository.calcularPosicaoPorDentista(
+                    fila.getDentista().getId(),
+                    fila.getPrioridade(),
+                    fila.getCriadoEm()
+            );
+        }
+
+        return repository.calcularPosicao(fila.getPrioridade(), fila.getCriadoEm());
     }
 
     // ==================== MÉTODOS AUXILIARES ====================
 
     private FilaEspera findById(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Fila de espera não encontrada com id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Fila de espera não encontrada: " + id));
     }
 
-    private Paciente findPacienteById(Long id) {
+    private Paciente findPaciente(Long id) {
         return pacienteRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Paciente não encontrado com id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Paciente não encontrado: " + id));
     }
 
-    private Dentista findDentistaById(Long id) {
+    private Dentista findDentista(Long id) {
         return dentistaRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Dentista não encontrado com id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Dentista não encontrado: " + id));
     }
 
-    private void validarDentistaAtivo(Dentista dentista) {
-        if (!dentista.getAtivo()) {
-            throw new BusinessException("Dentista está inativo");
+    private void validarDuplicidade(Long pacienteId, Long dentistaId) {
+        boolean existe = dentistaId != null
+                ? repository.existsAtivaPorPacienteEDentista(pacienteId, dentistaId)
+                : repository.existsAtivaPorPaciente(pacienteId);
+
+        if (existe) {
+            throw new BusinessException("Paciente já possui fila de espera ativa" +
+                    (dentistaId != null ? " para este dentista" : ""));
         }
     }
 
-    private void validarPacienteNaoTemFilaAtiva(Long pacienteId, Long dentistaId) {
-        if (dentistaId != null) {
-            boolean exists = repository.existsByPacienteAndDentistaAtiva(pacienteId, dentistaId);
-            if (exists) {
-                throw new BusinessException("Paciente já possui uma fila de espera ativa para este dentista");
-            }
-        } else {
-            boolean exists = repository.existsByPacienteAtiva(pacienteId);
-            if (exists) {
-                throw new BusinessException("Paciente já possui uma fila de espera ativa");
-            }
+    private String getUsuarioLogado() {
+        try {
+            return SecurityContextHolder.getContext().getAuthentication().getName();
+        } catch (Exception e) {
+            return "sistema";
         }
     }
 }

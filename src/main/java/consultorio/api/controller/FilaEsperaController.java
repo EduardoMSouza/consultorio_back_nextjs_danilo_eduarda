@@ -2,7 +2,7 @@ package consultorio.api.controller;
 
 import consultorio.api.dto.request.FilaEsperaRequest;
 import consultorio.api.dto.response.FilaEsperaResponse;
-import consultorio.domain.entity.Agendamento;
+import consultorio.domain.entity.Agendamento.TipoProcedimento;
 import consultorio.domain.entity.FilaEspera.StatusFila;
 import consultorio.domain.service.FilaEsperaService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,168 +30,159 @@ public class FilaEsperaController {
 
     private final FilaEsperaService service;
 
+    // ==================== CRUD ====================
+
     @PostMapping
-    @Operation(summary = "Adicionar paciente na fila de espera")
+    @Operation(summary = "Criar entrada na fila")
     public ResponseEntity<FilaEsperaResponse> criar(@Valid @RequestBody FilaEsperaRequest request) {
-        FilaEsperaResponse response = service.criar(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.criar(request));
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Buscar registro da fila por ID")
+    @Operation(summary = "Buscar por ID")
     public ResponseEntity<FilaEsperaResponse> buscarPorId(@PathVariable Long id) {
-        FilaEsperaResponse response = service.buscarPorId(id);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping
-    @Operation(summary = "Listar todas as filas de espera")
-    public ResponseEntity<Page<FilaEsperaResponse>> listarTodas(
-            @PageableDefault(size = 20, sort = "criadoEm", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<FilaEsperaResponse> response = service.listarTodas(pageable);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/ativas")
-    @Operation(summary = "Listar filas ativas (aguardando ou notificadas)")
-    public ResponseEntity<List<FilaEsperaResponse>> listarAtivas() {
-        List<FilaEsperaResponse> response = service.listarAtivas();
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/dentista/{dentistaId}")
-    @Operation(summary = "Listar filas por dentista")
-    public ResponseEntity<List<FilaEsperaResponse>> listarPorDentista(@PathVariable Long dentistaId) {
-        List<FilaEsperaResponse> response = service.listarPorDentista(dentistaId);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/paciente/{pacienteId}")
-    @Operation(summary = "Listar todas as filas do paciente")
-    public ResponseEntity<List<FilaEsperaResponse>> listarPorPaciente(@PathVariable Long pacienteId) {
-        List<FilaEsperaResponse> response = service.listarPorPaciente(pacienteId);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/paciente/{pacienteId}/ativas")
-    @Operation(summary = "Listar filas ativas do paciente")
-    public ResponseEntity<List<FilaEsperaResponse>> listarPorPacienteAtivas(@PathVariable Long pacienteId) {
-        List<FilaEsperaResponse> response = service.listarPorPacienteAtivas(pacienteId);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/status/{status}")
-    @Operation(summary = "Listar filas por status")
-    public ResponseEntity<Page<FilaEsperaResponse>> listarPorStatus(
-            @PathVariable StatusFila status,
-            @PageableDefault(size = 20, sort = "criadoEm", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<FilaEsperaResponse> response = service.listarPorStatus(status, pageable);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/compativeis")
-    @Operation(summary = "Buscar filas compatíveis com agendamento")
-    public ResponseEntity<List<FilaEsperaResponse>> buscarCompativeisComAgendamento(
-            @RequestParam Long dentistaId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
-            @RequestParam(required = false) Agendamento.TipoProcedimento tipoProcedimento) {
-        List<FilaEsperaResponse> response = service.buscarCompativeisComAgendamento(
-                dentistaId, data, tipoProcedimento);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/compativeis/dentista/{dentistaId}")
-    @Operation(summary = "Buscar filas compatíveis com dentista")
-    public ResponseEntity<List<FilaEsperaResponse>> buscarCompativeisComDentista(@PathVariable Long dentistaId) {
-        List<FilaEsperaResponse> response = service.buscarCompativeisComDentista(dentistaId);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/estatisticas/ativas-dentista/{dentistaId}")
-    @Operation(summary = "Contar filas ativas por dentista")
-    public ResponseEntity<Map<String, Long>> contarAtivasPorDentista(@PathVariable Long dentistaId) {
-        Long total = service.contarAtivasPorDentista(dentistaId);
-        return ResponseEntity.ok(Map.of("total", total));
-    }
-
-    @GetMapping("/estatisticas/total-ativas")
-    @Operation(summary = "Contar total de filas ativas")
-    public ResponseEntity<Map<String, Long>> contarTotalAtivas() {
-        Long total = service.contarTotalAtivas();
-        return ResponseEntity.ok(Map.of("total", total));
-    }
-
-    @GetMapping("/estatisticas/ativas-paciente/{pacienteId}")
-    @Operation(summary = "Contar filas ativas por paciente")
-    public ResponseEntity<Map<String, Long>> contarAtivasPorPaciente(@PathVariable Long pacienteId) {
-        Long total = service.contarAtivasPorPaciente(pacienteId);
-        return ResponseEntity.ok(Map.of("total", total));
+        return ResponseEntity.ok(service.buscarPorId(id));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar registro da fila")
-    public ResponseEntity<FilaEsperaResponse> atualizar(
-            @PathVariable Long id,
-            @Valid @RequestBody FilaEsperaRequest request) {
-        FilaEsperaResponse response = service.atualizar(id, request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PatchMapping("/{id}/notificar")
-    @Operation(summary = "Notificar paciente sobre vaga disponível")
-    public ResponseEntity<Void> notificar(@PathVariable Long id) {
-        service.notificar(id);
-        return ResponseEntity.ok().build();
-    }
-
-    @PatchMapping("/{id}/converter")
-    @Operation(summary = "Converter fila em agendamento")
-    public ResponseEntity<Void> converterEmAgendamento(
-            @PathVariable Long id,
-            @RequestParam Long agendamentoId) {
-        service.converterEmAgendamento(id, agendamentoId);
-        return ResponseEntity.ok().build();
-    }
-
-    @PatchMapping("/{id}/cancelar")
-    @Operation(summary = "Cancelar registro da fila")
-    public ResponseEntity<Void> cancelar(@PathVariable Long id) {
-        service.cancelar(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping("/{id}/incrementar-tentativa")
-    @Operation(summary = "Incrementar tentativa de contato")
-    public ResponseEntity<Void> incrementarTentativaContato(@PathVariable Long id) {
-        service.incrementarTentativaContato(id);
-        return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/processar-automaticamente")
-    @Operation(summary = "Processar fila automaticamente")
-    public ResponseEntity<Void> processarFilaAutomaticamente() {
-        service.processarFilaAutomaticamente();
-        return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/enviar-notificacoes-pendentes")
-    @Operation(summary = "Enviar notificações pendentes")
-    public ResponseEntity<Void> enviarNotificacoesPendentes() {
-        service.enviarNotificacoesPendentes();
-        return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/expirar-antigas")
-    @Operation(summary = "Expirar filas antigas")
-    public ResponseEntity<Void> expirarFilasAnteriores() {
-        service.expirarFilasAnteriores();
-        return ResponseEntity.ok().build();
+    @Operation(summary = "Atualizar entrada na fila")
+    public ResponseEntity<FilaEsperaResponse> atualizar(@PathVariable Long id, @Valid @RequestBody FilaEsperaRequest request) {
+        return ResponseEntity.ok(service.atualizar(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Deletar registro da fila")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
+    @Operation(summary = "Deletar entrada da fila")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletar(@PathVariable Long id) {
         service.deletar(id);
-        return ResponseEntity.noContent().build();
+    }
+
+    // ==================== LISTAGENS ====================
+
+    @GetMapping
+    @Operation(summary = "Listar todas as entradas")
+    public ResponseEntity<Page<FilaEsperaResponse>> listarTodas(
+            @PageableDefault(size = 20, sort = "criadoEm", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(service.listarTodas(pageable));
+    }
+
+    @GetMapping("/ativas")
+    @Operation(summary = "Listar filas ativas")
+    public ResponseEntity<Page<FilaEsperaResponse>> listarAtivas(
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(service.listarAtivas(pageable));
+    }
+
+    @GetMapping("/status/{status}")
+    @Operation(summary = "Listar por status")
+    public ResponseEntity<Page<FilaEsperaResponse>> listarPorStatus(
+            @PathVariable StatusFila status,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(service.listarPorStatus(status, pageable));
+    }
+
+    @GetMapping("/dentista/{dentistaId}")
+    @Operation(summary = "Listar filas ativas por dentista")
+    public ResponseEntity<List<FilaEsperaResponse>> listarPorDentista(@PathVariable Long dentistaId) {
+        return ResponseEntity.ok(service.listarAtivasPorDentista(dentistaId));
+    }
+
+    @GetMapping("/paciente/{pacienteId}")
+    @Operation(summary = "Listar filas por paciente")
+    public ResponseEntity<List<FilaEsperaResponse>> listarPorPaciente(@PathVariable Long pacienteId) {
+        return ResponseEntity.ok(service.listarPorPaciente(pacienteId));
+    }
+
+    @GetMapping("/paciente/{pacienteId}/ativas")
+    @Operation(summary = "Listar filas ativas por paciente")
+    public ResponseEntity<List<FilaEsperaResponse>> listarAtivasPorPaciente(@PathVariable Long pacienteId) {
+        return ResponseEntity.ok(service.listarAtivasPorPaciente(pacienteId));
+    }
+
+    // ==================== AÇÕES ====================
+
+    @PatchMapping("/{id}/notificar")
+    @Operation(summary = "Notificar paciente")
+    public ResponseEntity<FilaEsperaResponse> notificar(@PathVariable Long id) {
+        return ResponseEntity.ok(service.notificar(id));
+    }
+
+    @PatchMapping("/{id}/cancelar")
+    @Operation(summary = "Cancelar entrada na fila")
+    public ResponseEntity<FilaEsperaResponse> cancelar(@PathVariable Long id) {
+        return ResponseEntity.ok(service.cancelar(id));
+    }
+
+    @PatchMapping("/{filaId}/converter/{agendamentoId}")
+    @Operation(summary = "Converter fila em agendamento")
+    public ResponseEntity<FilaEsperaResponse> converterEmAgendamento(
+            @PathVariable Long filaId,
+            @PathVariable Long agendamentoId) {
+        return ResponseEntity.ok(service.converterEmAgendamento(filaId, agendamentoId));
+    }
+
+    // ==================== PROCESSAMENTO ====================
+
+    @PostMapping("/expirar")
+    @Operation(summary = "Expirar filas vencidas")
+    public ResponseEntity<Map<String, Integer>> expirarVencidas() {
+        int total = service.expirarFilasVencidas();
+        return ResponseEntity.ok(Map.of("expiradas", total));
+    }
+
+    @PostMapping("/notificacoes")
+    @Operation(summary = "Enviar notificações pendentes")
+    public ResponseEntity<Map<String, Integer>> enviarNotificacoes() {
+        int total = service.enviarNotificacoesPendentes();
+        return ResponseEntity.ok(Map.of("enviadas", total));
+    }
+
+    // ==================== COMPATÍVEIS ====================
+
+    @GetMapping("/compativeis")
+    @Operation(summary = "Buscar filas compatíveis com horário")
+    public ResponseEntity<List<FilaEsperaResponse>> buscarCompativeis(
+            @RequestParam Long dentistaId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
+            @RequestParam(required = false) TipoProcedimento tipoProcedimento) {
+        return ResponseEntity.ok(service.buscarCompativeis(dentistaId, data, tipoProcedimento));
+    }
+
+    @GetMapping("/compativeis/dentista/{dentistaId}")
+    @Operation(summary = "Buscar filas compatíveis por dentista")
+    public ResponseEntity<List<FilaEsperaResponse>> buscarCompatíveisPorDentista(@PathVariable Long dentistaId) {
+        return ResponseEntity.ok(service.buscarCompatíveisPorDentista(dentistaId));
+    }
+
+    // ==================== ESTATÍSTICAS ====================
+
+    @GetMapping("/estatisticas")
+    @Operation(summary = "Obter estatísticas")
+    public ResponseEntity<Map<String, Object>> estatisticas() {
+        return ResponseEntity.ok(service.obterEstatisticas());
+    }
+
+    @GetMapping("/contagem")
+    @Operation(summary = "Contar filas ativas")
+    public ResponseEntity<Map<String, Long>> contagem(
+            @RequestParam(required = false) Long dentistaId,
+            @RequestParam(required = false) Long pacienteId) {
+
+        long total;
+        if (dentistaId != null) {
+            total = service.contarAtivasPorDentista(dentistaId);
+        } else if (pacienteId != null) {
+            total = service.contarAtivasPorPaciente(pacienteId);
+        } else {
+            total = service.contarAtivas();
+        }
+
+        return ResponseEntity.ok(Map.of("total", total));
+    }
+
+    @GetMapping("/{id}/posicao")
+    @Operation(summary = "Calcular posição na fila")
+    public ResponseEntity<Map<String, Integer>> posicao(@PathVariable Long id) {
+        return ResponseEntity.ok(Map.of("posicao", service.calcularPosicao(id)));
     }
 }

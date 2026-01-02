@@ -10,22 +10,23 @@ import org.springframework.data.domain.Pageable;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 
 public interface AgendamentoService {
 
-    // ==================== CRUD BÁSICO ====================
+    // ==================== CRUD ====================
 
     AgendamentoResponse criar(AgendamentoRequest request);
 
     AgendamentoResponse buscarPorId(Long id);
 
-    Page<AgendamentoResumoResponse> listarTodos(Pageable pageable);
-
     AgendamentoResponse atualizar(Long id, AgendamentoRequest request);
 
     void deletar(Long id);
 
-    // ==================== LISTAGENS POR FILTROS ====================
+    // ==================== LISTAGENS ====================
+
+    Page<AgendamentoResumoResponse> listarTodos(Pageable pageable);
 
     Page<AgendamentoResumoResponse> listarPorDentista(Long dentistaId, Pageable pageable);
 
@@ -33,7 +34,7 @@ public interface AgendamentoService {
 
     Page<AgendamentoResumoResponse> listarPorStatus(StatusAgendamento status, Pageable pageable);
 
-    Page<AgendamentoResumoResponse> listarPorPeriodo(LocalDate dataInicio, LocalDate dataFim, Pageable pageable);
+    Page<AgendamentoResumoResponse> listarPorPeriodo(LocalDate inicio, LocalDate fim, Pageable pageable);
 
     // ==================== AGENDA ====================
 
@@ -41,47 +42,45 @@ public interface AgendamentoService {
 
     List<AgendamentoResumoResponse> buscarAgendaDoDia(LocalDate data);
 
-    List<AgendamentoResumoResponse> buscarProximosAgendamentos(Long pacienteId);
+    List<AgendamentoResumoResponse> buscarProximosPaciente(Long pacienteId);
 
-    List<AgendamentoResumoResponse> buscarProximosAgendamentosDentista(Long dentistaId);
+    List<AgendamentoResumoResponse> buscarProximosDentista(Long dentistaId);
 
-    // ==================== MUDANÇAS DE STATUS ====================
+    // ==================== MUDANÇA DE STATUS ====================
 
-    AgendamentoResponse atualizarStatus(Long id, StatusAgendamento status);
+    AgendamentoResponse confirmar(Long id);
 
-    void confirmar(Long id);
+    AgendamentoResponse iniciarAtendimento(Long id);
 
-    void iniciarAtendimento(Long id);
+    AgendamentoResponse concluir(Long id);
 
-    void concluir(Long id);
+    AgendamentoResponse cancelar(Long id, String motivo);
 
-    void cancelar(Long id, String motivo);
+    AgendamentoResponse marcarFalta(Long id);
 
-    void marcarFalta(Long id);
-
-    // ==================== VALIDAÇÕES E DISPONIBILIDADE ====================
+    // ==================== DISPONIBILIDADE ====================
 
     boolean verificarDisponibilidade(Long dentistaId, LocalDate data, LocalTime horaInicio, LocalTime horaFim);
 
-    List<LocalTime[]> buscarHorariosDisponiveis(Long dentistaId, LocalDate data, int duracaoMinutos);
+    List<Map<String, LocalTime>> buscarHorariosDisponiveis(Long dentistaId, LocalDate data, int duracaoMinutos);
 
     // ==================== LEMBRETES ====================
 
-    void enviarLembretes(LocalDate data);
-
-    void marcarLembreteEnviado(Long id);
+    int enviarLembretes(LocalDate data);
 
     // ==================== ESTATÍSTICAS ====================
 
-    Long contarConsultasDoDia(Long dentistaId, LocalDate data);
+    Map<String, Object> obterEstatisticas(LocalDate inicio, LocalDate fim);
 
-    Long contarFaltasPaciente(Long pacienteId);
+    long contarConsultasDoDia(Long dentistaId, LocalDate data);
+
+    long contarFaltasPaciente(Long pacienteId);
 
     // ==================== CONSULTAS ESPECIAIS ====================
 
-    List<AgendamentoResumoResponse> buscarConsultasPassadasNaoFinalizadas();
+    List<AgendamentoResumoResponse> buscarPassadosNaoFinalizados();
 
-    List<AgendamentoResumoResponse> buscarConsultasEmAtendimento();
+    List<AgendamentoResumoResponse> buscarEmAtendimento();
 
-    Page<AgendamentoResumoResponse> buscarHistoricoConsultasPaciente(Long pacienteId, Pageable pageable);
+    Page<AgendamentoResumoResponse> buscarHistoricoPaciente(Long pacienteId, Pageable pageable);
 }

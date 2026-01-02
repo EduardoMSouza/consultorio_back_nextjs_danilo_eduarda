@@ -1,21 +1,27 @@
 package consultorio.api.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import consultorio.domain.entity.User;
+import consultorio.domain.entity.User.Role;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-public record UserResponse(
-        Long id,
-        String nome,
-        String username,
-        String email,
-        User.Role role,
-        Boolean ativo,
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserResponse {
 
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-        LocalDateTime criadoEm,
-
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-        LocalDateTime ultimoLogin
-) {}
+    private Long id;
+    private String nome;
+    private String username;
+    private String email;
+    private Role role;
+    private Boolean ativo;
+    private LocalDateTime ultimoLogin;
+    private LocalDateTime criadoEm;
+    private LocalDateTime atualizadoEm;
+    private String criadoPor;
+}

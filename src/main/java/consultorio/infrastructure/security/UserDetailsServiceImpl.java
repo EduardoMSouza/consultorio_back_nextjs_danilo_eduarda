@@ -1,4 +1,4 @@
-package consultorio.infrastructure.secutiry;
+package consultorio.infrastructure.security;
 
 import consultorio.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +14,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + email));
+    public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+        // Tenta buscar por username primeiro
+        return userRepository.findByUsername(identifier)
+                .or(() -> userRepository.findByEmail(identifier)) // Se não achar, tenta email
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + identifier));
     }
 }

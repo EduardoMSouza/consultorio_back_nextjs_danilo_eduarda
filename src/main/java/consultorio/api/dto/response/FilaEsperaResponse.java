@@ -1,6 +1,5 @@
 package consultorio.api.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import consultorio.domain.entity.Agendamento.TipoProcedimento;
 import consultorio.domain.entity.FilaEspera.PeriodoPreferencial;
 import consultorio.domain.entity.FilaEspera.StatusFila;
@@ -21,61 +20,50 @@ public class FilaEsperaResponse {
 
     private Long id;
 
+    // Paciente
     private Long pacienteId;
     private String pacienteNome;
     private String pacienteTelefone;
     private String pacienteEmail;
 
+    // Dentista
     private Long dentistaId;
     private String dentistaNome;
 
+    // Preferências
     private TipoProcedimento tipoProcedimento;
     private String tipoProcedimentoDescricao;
-
-    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate dataPreferencial;
-
-    @JsonFormat(pattern = "HH:mm")
     private LocalTime horaInicioPreferencial;
-
-    @JsonFormat(pattern = "HH:mm")
     private LocalTime horaFimPreferencial;
-
     private PeriodoPreferencial periodoPreferencial;
     private String periodoPreferencialDescricao;
 
+    // Status
     private StatusFila status;
     private String statusDescricao;
-
     private String observacoes;
     private Integer prioridade;
+    private Integer posicaoFila;
+
+    // Flags
     private Boolean aceitaQualquerHorario;
     private Boolean aceitaQualquerDentista;
+    private Boolean ativa;
+    private Boolean expirada;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime criadoEm;
-
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime atualizadoEm;
-
-    private String criadoPor;
-
-    private Long agendamentoId;
-
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime convertidoEm;
-
+    // Notificação
     private Boolean notificado;
-
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime notificadoEm;
-
     private Integer tentativasContato;
-
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime ultimaTentativaContato;
 
-    private Boolean isAtiva;
-    private Boolean isExpirada;
-    private Integer posicaoFila;
+    // Conversão
+    private Long agendamentoId;
+    private LocalDateTime convertidoEm;
+
+    // Auditoria
+    private LocalDateTime criadoEm;
+    private LocalDateTime atualizadoEm;
+    private String criadoPor;
 }

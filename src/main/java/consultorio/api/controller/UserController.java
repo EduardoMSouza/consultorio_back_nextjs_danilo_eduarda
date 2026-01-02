@@ -3,6 +3,7 @@ package consultorio.api.controller;
 import consultorio.api.dto.request.UserRequest;
 import consultorio.api.dto.response.UserResponse;
 import consultorio.domain.entity.User;
+import consultorio.domain.entity.User.Role;
 import consultorio.domain.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -17,51 +18,83 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
-@Tag(name = "Usuários", description = "Gerenciamento de usuários (apenas ADMIN)")
+@Tag(name = "Usuários", description = "Gerenciamento de usuários")
 @SecurityRequirement(name = "bearerAuth")
 public class UserController {
 
     private final UserService service;
 
+    // ==================== CRUD ====================
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Criar novo usuário (apenas ADMIN)")
+    @Operation(summary = "Criar usuário (ADMIN)")
     public ResponseEntity<UserResponse> criar(
             @Valid @RequestBody UserRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        UserResponse response = service.criar(request, userDetails.getUsername());
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.criar(request, user.getUsername()));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Buscar usuário por ID")
     public ResponseEntity<UserResponse> buscarPorId(@PathVariable Long id) {
-        UserResponse response = service.buscarPorId(id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.buscarPorId(id));
     }
 
     @GetMapping("/username/{username}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Buscar usuário por username")
     public ResponseEntity<UserResponse> buscarPorUsername(@PathVariable String username) {
-        UserResponse response = service.buscarPorUsername(username);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.buscarPorUsername(username));
     }
+
+    @GetMapping("/email/{email}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Buscar usuário por email")
+    public ResponseEntity<UserResponse> buscarPorEmail(@PathVariable String email) {
+        return ResponseEntity.ok(service.buscarPorEmail(email));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Atualizar usuário")
+    public ResponseEntity<UserResponse> atualizar(@PathVariable Long id, @Valid @RequestBody UserRequest request) {
+        return ResponseEntity.ok(service.atualizar(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Deletar usuário")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletar(@PathVariable Long id) {
+        service.deletar(id);
+    }
+
+    // ==================== LISTAGENS ====================
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Listar todos os usuários")
     public ResponseEntity<Page<UserResponse>> listarTodos(
             @PageableDefault(size = 20, sort = "nome", direction = Sort.Direction.ASC) Pageable pageable) {
-        Page<UserResponse> response = service.listarTodos(pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.listarTodos(pageable));
+    }
+
+    @GetMapping("/buscar")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Buscar usuários por termo")
+    public ResponseEntity<Page<UserResponse>> buscar(
+            @RequestParam(required = false) String termo,
+            @PageableDefault(size = 20, sort = "nome", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(service.buscar(termo, pageable));
     }
 
     @GetMapping("/status/{ativo}")
@@ -70,58 +103,50 @@ public class UserController {
     public ResponseEntity<Page<UserResponse>> listarPorStatus(
             @PathVariable Boolean ativo,
             @PageableDefault(size = 20, sort = "nome", direction = Sort.Direction.ASC) Pageable pageable) {
-        Page<UserResponse> response = service.listarPorStatus(ativo, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.listarPorStatus(ativo, pageable));
     }
 
     @GetMapping("/role/{role}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Listar usuários por role")
     public ResponseEntity<Page<UserResponse>> listarPorRole(
-            @PathVariable User.Role role,
+            @PathVariable Role role,
             @PageableDefault(size = 20, sort = "nome", direction = Sort.Direction.ASC) Pageable pageable) {
-        Page<UserResponse> response = service.listarPorRole(role, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.listarPorRole(role, pageable));
     }
 
-    @PutMapping("/{id}")
+    // ==================== STATUS ====================
+
+    @PatchMapping("/{id}/ativar")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Atualizar usuário")
-    public ResponseEntity<UserResponse> atualizar(
-            @PathVariable Long id,
-            @Valid @RequestBody UserRequest request) {
-        UserResponse response = service.atualizar(id, request);
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Ativar usuário")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void ativar(@PathVariable Long id) {
+        service.ativar(id);
     }
 
     @PatchMapping("/{id}/inativar")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Inativar usuário")
-    public ResponseEntity<Void> inativar(@PathVariable Long id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void inativar(@PathVariable Long id) {
         service.inativar(id);
-        return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{id}/ativar")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Ativar usuário")
-    public ResponseEntity<Void> ativar(@PathVariable Long id) {
-        service.ativar(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Deletar usuário")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        service.deletar(id);
-        return ResponseEntity.noContent().build();
-    }
+    // ==================== USUÁRIO LOGADO ====================
 
     @GetMapping("/me")
-    @Operation(summary = "Obter dados do usuário logado")
-    public ResponseEntity<UserResponse> me(@AuthenticationPrincipal UserDetails userDetails) {
-        UserResponse response = service.buscarPorUsername(userDetails.getUsername());
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Dados do usuário logado")
+    public ResponseEntity<UserResponse> me(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(service.buscarPorId(user.getId()));
+    }
+
+    // ==================== ESTATÍSTICAS ====================
+
+    @GetMapping("/estatisticas")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Estatísticas de usuários")
+    public ResponseEntity<Map<String, Object>> estatisticas() {
+        return ResponseEntity.ok(service.obterEstatisticas());
     }
 }

@@ -9,6 +9,7 @@ import consultorio.api.mapper.AgendamentoMapper;
 import consultorio.domain.entity.Agendamento;
 import consultorio.domain.entity.Agendamento.StatusAgendamento;
 import consultorio.domain.entity.AgendamentoHistorico;
+import consultorio.domain.entity.AgendamentoHistorico.TipoAcao;
 import consultorio.domain.entity.Dentista;
 import consultorio.domain.entity.Paciente;
 import consultorio.domain.repository.AgendamentoHistoricoRepository;
@@ -21,541 +22,424 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AgendamentoServiceImpl implements AgendamentoService {
 
     private final AgendamentoRepository repository;
+    private final AgendamentoHistoricoRepository historicoRepository;
     private final DentistaRepository dentistaRepository;
     private final PacienteRepository pacienteRepository;
-    private final AgendamentoHistoricoRepository historicoRepository;
     private final AgendamentoMapper mapper;
     private final FilaEsperaService filaEsperaService;
 
-    private static final int MAX_CONSULTAS_POR_DIA = 20;
-    private static final LocalTime HORA_INICIO_EXPEDIENTE = LocalTime.of(8, 0);
-    private static final LocalTime HORA_FIM_EXPEDIENTE = LocalTime.of(18, 0);
-    private static final int DURACAO_MINIMA_MINUTOS = 30;
-    private static final int DURACAO_MAXIMA_MINUTOS = 240;
+    private static final LocalTime HORARIO_INICIO = LocalTime.of(8, 0);
+    private static final LocalTime HORARIO_FIM = LocalTime.of(18, 0);
+    private static final int INTERVALO_MINUTOS = 30;
+
+    // ==================== CRUD ====================
 
     @Override
     @Transactional
     public AgendamentoResponse criar(AgendamentoRequest request) {
-        log.info("Criando agendamento para dentista {} e paciente {}",
-                request.getDentistaId(), request.getPacienteId());
-
-        validarHorario(request);
-        validarDataConsulta(request.getDataConsulta());
-        validarHorarioComercial(request.getHoraInicio(), request.getHoraFim());
-        validarDuracaoConsulta(request.getHoraInicio(), request.getHoraFim());
-
-        Dentista dentista = findDentistaById(request.getDentistaId());
-        Paciente paciente = findPacienteById(request.getPacienteId());
+        Dentista dentista = findDentista(request.getDentistaId());
+        Paciente paciente = findPaciente(request.getPacienteId());
 
         validarDentistaAtivo(dentista);
-        validarCapacidadeDiaria(request.getDentistaId(), request.getDataConsulta());
-
-        validarConflitoDentista(request.getDentistaId(), request.getDataConsulta(),
-                request.getHoraInicio(), request.getHoraFim(), null);
-        validarConflitoPaciente(request.getPacienteId(), request.getDataConsulta(),
-                request.getHoraInicio(), request.getHoraFim(), null);
+        validarHorario(request.getHoraInicio(), request.getHoraFim());
+        validarDataFutura(request.getDataConsulta());
+        validarConflitoDentista(request.getDentistaId(), request.getDataConsulta(), request.getHoraInicio(), request.getHoraFim(), null);
+        validarConflitoPaciente(request.getPacienteId(), request.getDataConsulta(), request.getHoraInicio(), request.getHoraFim());
 
         Agendamento agendamento = mapper.toEntity(request, dentista, paciente);
+        agendamento.setCriadoPor(getUsuarioLogado());
         agendamento = repository.save(agendamento);
 
-        registrarHistorico(agendamento.getId(), AgendamentoHistorico.TipoAcao.CRIACAO,
-                null, "Agendamento criado");
+        registrarHistorico(agendamento.getId(), TipoAcao.CRIACAO, null, StatusAgendamento.AGENDADO, "Agendamento criado");
 
-        filaEsperaService.processarFilaAposCriacao(agendamento);
+        log.info("Agendamento criado: id={}, dentista={}, paciente={}, data={}",
+                agendamento.getId(), dentista.getNome(), paciente.getDadosBasicos().getNome(), request.getDataConsulta());
 
-        log.info("Agendamento {} criado com sucesso", agendamento.getId());
         return mapper.toResponse(agendamento);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public AgendamentoResponse buscarPorId(Long id) {
-        Agendamento agendamento = findByIdAtivo(id);
-        return mapper.toResponse(agendamento);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<AgendamentoResumoResponse> listarTodos(Pageable pageable) {
-        return repository.findAllAtivos(pageable)
-                .map(mapper::toResumoResponse);
+        return mapper.toResponse(findById(id));
     }
 
     @Override
     @Transactional
     public AgendamentoResponse atualizar(Long id, AgendamentoRequest request) {
-        log.info("Atualizando agendamento {}", id);
+        Agendamento agendamento = findById(id);
 
-        Agendamento agendamento = findByIdAtivo(id);
-
-        validarStatusParaEdicao(agendamento);
-        validarHorario(request);
-        validarDataConsulta(request.getDataConsulta());
-        validarHorarioComercial(request.getHoraInicio(), request.getHoraFim());
-        validarDuracaoConsulta(request.getHoraInicio(), request.getHoraFim());
-
-        Dentista dentista = findDentistaById(request.getDentistaId());
-        Paciente paciente = findPacienteById(request.getPacienteId());
-
-        validarDentistaAtivo(dentista);
-
-        boolean mudouDentista = !agendamento.getDentista().getId().equals(request.getDentistaId());
-        boolean mudouHorario = !agendamento.getDataConsulta().equals(request.getDataConsulta()) ||
-                !agendamento.getHoraInicio().equals(request.getHoraInicio()) ||
-                !agendamento.getHoraFim().equals(request.getHoraFim());
-
-        if (mudouDentista || mudouHorario) {
-            if (mudouDentista || !agendamento.getDataConsulta().equals(request.getDataConsulta())) {
-                validarCapacidadeDiaria(request.getDentistaId(), request.getDataConsulta());
-            }
-
-            validarConflitoDentista(request.getDentistaId(), request.getDataConsulta(),
-                    request.getHoraInicio(), request.getHoraFim(), id);
-            validarConflitoPaciente(request.getPacienteId(), request.getDataConsulta(),
-                    request.getHoraInicio(), request.getHoraFim(), id);
+        if (!agendamento.isPodeSerEditado()) {
+            throw new BusinessException("Agendamento não pode ser editado no status atual");
         }
 
+        Dentista dentista = findDentista(request.getDentistaId());
+        Paciente paciente = findPaciente(request.getPacienteId());
+
+        validarDentistaAtivo(dentista);
+        validarHorario(request.getHoraInicio(), request.getHoraFim());
+        validarConflitoDentista(request.getDentistaId(), request.getDataConsulta(), request.getHoraInicio(), request.getHoraFim(), id);
+
         mapper.updateEntityFromRequest(request, agendamento, dentista, paciente);
+        agendamento.setAtualizadoPor(getUsuarioLogado());
         agendamento = repository.save(agendamento);
 
-        registrarHistorico(agendamento.getId(), AgendamentoHistorico.TipoAcao.ATUALIZACAO,
-                null, "Agendamento atualizado");
+        registrarHistorico(id, TipoAcao.ATUALIZACAO, null, null, "Agendamento atualizado");
 
-        log.info("Agendamento {} atualizado com sucesso", id);
+        log.info("Agendamento atualizado: id={}", id);
         return mapper.toResponse(agendamento);
     }
 
     @Override
     @Transactional
     public void deletar(Long id) {
-        log.info("Deletando agendamento {}", id);
+        Agendamento agendamento = findById(id);
+        repository.desativar(id, LocalDateTime.now());
+        registrarHistorico(id, TipoAcao.EXCLUSAO, agendamento.getStatus(), null, "Agendamento excluído");
+        log.info("Agendamento deletado: id={}", id);
+    }
 
-        Agendamento agendamento = findByIdAtivo(id);
+    // ==================== LISTAGENS ====================
 
-        registrarHistorico(id, AgendamentoHistorico.TipoAcao.EXCLUSAO,
-                null, "Agendamento excluído");
-
-        agendamento.desativar();
-        repository.save(agendamento);
-
-        filaEsperaService.processarFilaAposCancelamento(agendamento);
-
-        log.info("Agendamento {} deletado com sucesso", id);
+    @Override
+    public Page<AgendamentoResumoResponse> listarTodos(Pageable pageable) {
+        return repository.findAllAtivos(pageable).map(mapper::toResumoResponse);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<AgendamentoResumoResponse> listarPorDentista(Long dentistaId, Pageable pageable) {
-        return repository.findByDentistaId(dentistaId, pageable)
-                .map(mapper::toResumoResponse);
+        return repository.findByDentistaId(dentistaId, pageable).map(mapper::toResumoResponse);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<AgendamentoResumoResponse> listarPorPaciente(Long pacienteId, Pageable pageable) {
-        return repository.findByPacienteId(pacienteId, pageable)
-                .map(mapper::toResumoResponse);
+        return repository.findByPacienteId(pacienteId, pageable).map(mapper::toResumoResponse);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<AgendamentoResumoResponse> listarPorStatus(StatusAgendamento status, Pageable pageable) {
-        return repository.findByStatus(status, pageable)
-                .map(mapper::toResumoResponse);
+        return repository.findByStatus(status, pageable).map(mapper::toResumoResponse);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Page<AgendamentoResumoResponse> listarPorPeriodo(LocalDate dataInicio, LocalDate dataFim, Pageable pageable) {
-        validarPeriodo(dataInicio, dataFim);
-        return repository.findByPeriodo(dataInicio, dataFim, pageable)
-                .map(mapper::toResumoResponse);
+    public Page<AgendamentoResumoResponse> listarPorPeriodo(LocalDate inicio, LocalDate fim, Pageable pageable) {
+        return repository.findByPeriodo(inicio, fim, pageable).map(mapper::toResumoResponse);
     }
 
+    // ==================== AGENDA ====================
+
     @Override
-    @Transactional(readOnly = true)
     public List<AgendamentoResumoResponse> buscarAgendaDoDia(Long dentistaId, LocalDate data) {
-        List<Agendamento> agendamentos = repository.findAgendaDoDia(dentistaId, data);
-        return mapper.toResumoResponseList(agendamentos);
+        return mapper.toResumoResponseList(repository.findAgendaDoDia(dentistaId, data));
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<AgendamentoResumoResponse> buscarAgendaDoDia(LocalDate data) {
-        List<Agendamento> agendamentos = repository.findAllAgendaDoDia(data);
-        return mapper.toResumoResponseList(agendamentos);
+        return mapper.toResumoResponseList(repository.findAllAgendaDoDia(data));
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<AgendamentoResumoResponse> buscarProximosAgendamentos(Long pacienteId) {
-        List<Agendamento> agendamentos = repository.findProximosAgendamentos(pacienteId, LocalDate.now());
-        return mapper.toResumoResponseList(agendamentos);
+    public List<AgendamentoResumoResponse> buscarProximosPaciente(Long pacienteId) {
+        return mapper.toResumoResponseList(repository.findProximosPaciente(pacienteId, LocalDate.now()));
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<AgendamentoResumoResponse> buscarProximosAgendamentosDentista(Long dentistaId) {
-        List<Agendamento> agendamentos = repository.findProximosAgendamentosDentista(dentistaId, LocalDate.now());
-        return mapper.toResumoResponseList(agendamentos);
+    public List<AgendamentoResumoResponse> buscarProximosDentista(Long dentistaId) {
+        return mapper.toResumoResponseList(repository.findProximosDentista(dentistaId, LocalDate.now()));
     }
+
+    // ==================== MUDANÇA DE STATUS ====================
 
     @Override
     @Transactional
-    public AgendamentoResponse atualizarStatus(Long id, StatusAgendamento status) {
-        Agendamento agendamento = findByIdAtivo(id);
+    public AgendamentoResponse confirmar(Long id) {
+        Agendamento agendamento = findById(id);
         StatusAgendamento statusAnterior = agendamento.getStatus();
 
-        agendamento.setStatus(status);
-        agendamento = repository.save(agendamento);
+        if (statusAnterior != StatusAgendamento.AGENDADO) {
+            throw new BusinessException("Apenas agendamentos com status AGENDADO podem ser confirmados");
+        }
 
-        registrarMudancaStatus(id, statusAnterior, status, "Status atualizado manualmente");
+        agendamento.confirmar(getUsuarioLogado());
+        repository.save(agendamento);
+        registrarHistorico(id, TipoAcao.CONFIRMACAO, statusAnterior, StatusAgendamento.CONFIRMADO, "Agendamento confirmado");
 
+        log.info("Agendamento confirmado: id={}", id);
         return mapper.toResponse(agendamento);
     }
 
     @Override
     @Transactional
-    public void confirmar(Long id) {
-        Agendamento agendamento = findByIdAtivo(id);
+    public AgendamentoResponse iniciarAtendimento(Long id) {
+        Agendamento agendamento = findById(id);
         StatusAgendamento statusAnterior = agendamento.getStatus();
 
-        validarTransicaoStatus(agendamento, StatusAgendamento.CONFIRMADO);
+        if (statusAnterior != StatusAgendamento.AGENDADO && statusAnterior != StatusAgendamento.CONFIRMADO) {
+            throw new BusinessException("Apenas agendamentos AGENDADO ou CONFIRMADO podem iniciar atendimento");
+        }
 
-        agendamento.confirmar("system");
+        agendamento.iniciarAtendimento(getUsuarioLogado());
         repository.save(agendamento);
+        registrarHistorico(id, TipoAcao.INICIO_ATENDIMENTO, statusAnterior, StatusAgendamento.EM_ATENDIMENTO, "Atendimento iniciado");
 
-        registrarMudancaStatus(id, statusAnterior, StatusAgendamento.CONFIRMADO, "Agendamento confirmado");
+        log.info("Atendimento iniciado: id={}", id);
+        return mapper.toResponse(agendamento);
     }
 
     @Override
     @Transactional
-    public void iniciarAtendimento(Long id) {
-        Agendamento agendamento = findByIdAtivo(id);
+    public AgendamentoResponse concluir(Long id) {
+        Agendamento agendamento = findById(id);
         StatusAgendamento statusAnterior = agendamento.getStatus();
 
-        validarTransicaoStatus(agendamento, StatusAgendamento.EM_ATENDIMENTO);
+        if (statusAnterior != StatusAgendamento.EM_ATENDIMENTO) {
+            throw new BusinessException("Apenas agendamentos EM_ATENDIMENTO podem ser concluídos");
+        }
 
-        agendamento.iniciarAtendimento("system");
+        agendamento.concluir(getUsuarioLogado());
         repository.save(agendamento);
-
-        registrarMudancaStatus(id, statusAnterior, StatusAgendamento.EM_ATENDIMENTO, "Atendimento iniciado");
-    }
-
-    @Override
-    @Transactional
-    public void concluir(Long id) {
-        Agendamento agendamento = findByIdAtivo(id);
-        StatusAgendamento statusAnterior = agendamento.getStatus();
-
-        validarTransicaoStatus(agendamento, StatusAgendamento.CONCLUIDO);
-
-        agendamento.concluir("system");
-        repository.save(agendamento);
-
-        registrarMudancaStatus(id, statusAnterior, StatusAgendamento.CONCLUIDO, "Agendamento concluído");
+        registrarHistorico(id, TipoAcao.CONCLUSAO, statusAnterior, StatusAgendamento.CONCLUIDO, "Atendimento concluído");
 
         filaEsperaService.processarFilaAposConclusao(agendamento);
+
+        log.info("Agendamento concluído: id={}", id);
+        return mapper.toResponse(agendamento);
     }
 
     @Override
     @Transactional
-    public void cancelar(Long id, String motivo) {
-        Agendamento agendamento = findByIdAtivo(id);
+    public AgendamentoResponse cancelar(Long id, String motivo) {
+        Agendamento agendamento = findById(id);
         StatusAgendamento statusAnterior = agendamento.getStatus();
 
-        validarTransicaoStatus(agendamento, StatusAgendamento.CANCELADO);
+        if (!agendamento.isPodeSerCancelado()) {
+            throw new BusinessException("Agendamento não pode ser cancelado no status atual");
+        }
 
-        agendamento.cancelar(motivo, "system");
+        agendamento.cancelar(motivo, getUsuarioLogado());
         repository.save(agendamento);
-
-        registrarMudancaStatus(id, statusAnterior, StatusAgendamento.CANCELADO,
-                "Agendamento cancelado: " + motivo);
+        registrarHistorico(id, TipoAcao.CANCELAMENTO, statusAnterior, StatusAgendamento.CANCELADO, "Cancelado: " + motivo);
 
         filaEsperaService.processarFilaAposCancelamento(agendamento);
+
+        log.info("Agendamento cancelado: id={}, motivo={}", id, motivo);
+        return mapper.toResponse(agendamento);
     }
 
     @Override
     @Transactional
-    public void marcarFalta(Long id) {
-        Agendamento agendamento = findByIdAtivo(id);
+    public AgendamentoResponse marcarFalta(Long id) {
+        Agendamento agendamento = findById(id);
         StatusAgendamento statusAnterior = agendamento.getStatus();
 
-        validarTransicaoStatus(agendamento, StatusAgendamento.FALTOU);
+        if (statusAnterior == StatusAgendamento.CONCLUIDO || statusAnterior == StatusAgendamento.CANCELADO) {
+            throw new BusinessException("Não é possível marcar falta para este agendamento");
+        }
 
-        agendamento.marcarFalta("system");
+        agendamento.marcarFalta(getUsuarioLogado());
         repository.save(agendamento);
+        registrarHistorico(id, TipoAcao.FALTA, statusAnterior, StatusAgendamento.FALTOU, "Paciente faltou");
 
-        registrarMudancaStatus(id, statusAnterior, StatusAgendamento.FALTOU, "Paciente faltou");
-
-        filaEsperaService.processarFilaAposCancelamento(agendamento);
+        log.info("Falta marcada: id={}", id);
+        return mapper.toResponse(agendamento);
     }
 
+    // ==================== DISPONIBILIDADE ====================
+
     @Override
-    @Transactional(readOnly = true)
     public boolean verificarDisponibilidade(Long dentistaId, LocalDate data, LocalTime horaInicio, LocalTime horaFim) {
-        List<Agendamento> conflitos = repository.findConflitos(dentistaId, data, horaInicio, horaFim);
-        return conflitos.isEmpty();
+        return repository.findConflitos(dentistaId, data, horaInicio, horaFim).isEmpty();
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<LocalTime[]> buscarHorariosDisponiveis(Long dentistaId, LocalDate data, int duracaoMinutos) {
-        List<Agendamento> agendamentos = repository.findAgendamentosAtivos(dentistaId, data);
-        List<LocalTime[]> horariosDisponiveis = new ArrayList<>();
+    public List<Map<String, LocalTime>> buscarHorariosDisponiveis(Long dentistaId, LocalDate data, int duracaoMinutos) {
+        List<Agendamento> ocupados = repository.findOcupadosDoDia(dentistaId, data);
+        List<Map<String, LocalTime>> disponiveis = new ArrayList<>();
 
-        LocalTime horaAtual = HORA_INICIO_EXPEDIENTE;
-        LocalTime horaFimDisponivel = horaAtual.plusMinutes(duracaoMinutos);
+        LocalTime atual = HORARIO_INICIO;
 
-        for (Agendamento agendamento : agendamentos) {
-            if (horaFimDisponivel.isBefore(agendamento.getHoraInicio()) ||
-                    horaFimDisponivel.equals(agendamento.getHoraInicio())) {
-                horariosDisponiveis.add(new LocalTime[]{horaAtual, agendamento.getHoraInicio()});
+        while (atual.plusMinutes(duracaoMinutos).compareTo(HORARIO_FIM) <= 0) {
+            LocalTime fimSlot = atual.plusMinutes(duracaoMinutos);
+            boolean livre = true;
+
+            for (Agendamento a : ocupados) {
+                if (!(fimSlot.compareTo(a.getHoraInicio()) <= 0 || atual.compareTo(a.getHoraFim()) >= 0)) {
+                    livre = false;
+                    break;
+                }
             }
-            horaAtual = agendamento.getHoraFim();
-            horaFimDisponivel = horaAtual.plusMinutes(duracaoMinutos);
+
+            if (livre) {
+                Map<String, LocalTime> slot = new LinkedHashMap<>();
+                slot.put("inicio", atual);
+                slot.put("fim", fimSlot);
+                disponiveis.add(slot);
+            }
+
+            atual = atual.plusMinutes(INTERVALO_MINUTOS);
         }
 
-        if (horaFimDisponivel.isBefore(HORA_FIM_EXPEDIENTE) ||
-                horaFimDisponivel.equals(HORA_FIM_EXPEDIENTE)) {
-            horariosDisponiveis.add(new LocalTime[]{horaAtual, HORA_FIM_EXPEDIENTE});
-        }
-
-        return horariosDisponiveis;
+        return disponiveis;
     }
+
+    // ==================== LEMBRETES ====================
 
     @Override
     @Transactional
-    public void enviarLembretes(LocalDate data) {
-        List<Agendamento> consultas = repository.findConsultasParaLembrete(data);
+    public int enviarLembretes(LocalDate data) {
+        List<Agendamento> agendamentos = repository.findParaLembrete(data);
 
-        for (Agendamento agendamento : consultas) {
-            try {
-                // Aqui você implementaria o envio do lembrete (email, SMS, etc)
-                log.info("Enviando lembrete para agendamento {}", agendamento.getId());
-
-                agendamento.marcarLembreteEnviado();
-                repository.save(agendamento);
-
-                registrarHistorico(agendamento.getId(), AgendamentoHistorico.TipoAcao.LEMBRETE_ENVIADO,
-                        null, "Lembrete enviado");
-            } catch (Exception e) {
-                log.error("Erro ao enviar lembrete para agendamento {}", agendamento.getId(), e);
-            }
+        if (agendamentos.isEmpty()) {
+            return 0;
         }
+
+        List<Long> ids = agendamentos.stream().map(Agendamento::getId).collect(Collectors.toList());
+
+        // Aqui implementaria envio real (email, SMS, push)
+        for (Agendamento a : agendamentos) {
+            log.info("Lembrete enviado para: {} - Consulta em {} às {}",
+                    a.getPaciente().getDadosBasicos().getNome(), a.getDataConsulta(), a.getHoraInicio());
+        }
+
+        int atualizados = repository.marcarLembretesEnviados(ids, LocalDateTime.now());
+        log.info("Lembretes enviados: {}", atualizados);
+        return atualizados;
+    }
+
+    // ==================== ESTATÍSTICAS ====================
+
+    @Override
+    public Map<String, Object> obterEstatisticas(LocalDate inicio, LocalDate fim) {
+        Map<String, Object> stats = new LinkedHashMap<>();
+
+        stats.put("porStatus", repository.countPorStatusNoPeriodo(inicio, fim).stream()
+                .collect(Collectors.toMap(r -> ((StatusAgendamento) r[0]).name(), r -> r[1])));
+
+        stats.put("porProcedimento", repository.countPorProcedimentoNoPeriodo(inicio, fim).stream()
+                .collect(Collectors.toMap(r -> r[0] != null ? r[0].toString() : "N/A", r -> r[1])));
+
+        stats.put("porDentista", repository.countPorDentistaNoPeriodo(inicio, fim).stream()
+                .map(r -> Map.of("id", r[0], "nome", r[1], "total", r[2]))
+                .collect(Collectors.toList()));
+
+        return stats;
     }
 
     @Override
-    @Transactional
-    public void marcarLembreteEnviado(Long id) {
-        Agendamento agendamento = findByIdAtivo(id);
-        agendamento.marcarLembreteEnviado();
-        repository.save(agendamento);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Long contarConsultasDoDia(Long dentistaId, LocalDate data) {
+    public long contarConsultasDoDia(Long dentistaId, LocalDate data) {
         return repository.countConsultasDoDia(dentistaId, data);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Long contarFaltasPaciente(Long pacienteId) {
+    public long contarFaltasPaciente(Long pacienteId) {
         return repository.countFaltasPaciente(pacienteId);
     }
 
+    // ==================== CONSULTAS ESPECIAIS ====================
+
     @Override
-    @Transactional(readOnly = true)
-    public List<AgendamentoResumoResponse> buscarConsultasPassadasNaoFinalizadas() {
-        List<Agendamento> agendamentos = repository.findConsultasPassadasNaoFinalizadas(LocalDate.now());
-        return mapper.toResumoResponseList(agendamentos);
+    public List<AgendamentoResumoResponse> buscarPassadosNaoFinalizados() {
+        return mapper.toResumoResponseList(repository.findPassadosNaoFinalizados(LocalDate.now()));
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<AgendamentoResumoResponse> buscarConsultasEmAtendimento() {
-        List<Agendamento> agendamentos = repository.findConsultasEmAtendimento();
-        return mapper.toResumoResponseList(agendamentos);
+    public List<AgendamentoResumoResponse> buscarEmAtendimento() {
+        return mapper.toResumoResponseList(repository.findEmAtendimento());
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Page<AgendamentoResumoResponse> buscarHistoricoConsultasPaciente(Long pacienteId, Pageable pageable) {
-        return repository.findHistoricoConsultasPaciente(pacienteId, pageable)
-                .map(mapper::toResumoResponse);
+    public Page<AgendamentoResumoResponse> buscarHistoricoPaciente(Long pacienteId, Pageable pageable) {
+        return repository.findHistoricoPaciente(pacienteId, pageable).map(mapper::toResumoResponse);
     }
 
     // ==================== MÉTODOS AUXILIARES ====================
 
-    private Agendamento findByIdAtivo(Long id) {
+    private Agendamento findById(Long id) {
         return repository.findByIdAtivo(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado com id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado: " + id));
     }
 
-    private Dentista findDentistaById(Long id) {
+    private Dentista findDentista(Long id) {
         return dentistaRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Dentista não encontrado com id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Dentista não encontrado: " + id));
     }
 
-    private Paciente findPacienteById(Long id) {
+    private Paciente findPaciente(Long id) {
         return pacienteRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Paciente não encontrado com id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Paciente não encontrado: " + id));
     }
 
     private void validarDentistaAtivo(Dentista dentista) {
         if (!dentista.getAtivo()) {
-            throw new BusinessException("Dentista está inativo e não pode receber agendamentos");
+            throw new BusinessException("Dentista está inativo");
         }
     }
 
-    private void validarHorario(AgendamentoRequest request) {
-        if (request.getHoraFim().isBefore(request.getHoraInicio()) ||
-                request.getHoraFim().equals(request.getHoraInicio())) {
-            throw new BusinessException("Hora de fim deve ser posterior à hora de início");
+    private void validarHorario(LocalTime inicio, LocalTime fim) {
+        if (!fim.isAfter(inicio)) {
+            throw new BusinessException("Horário de fim deve ser após o horário de início");
+        }
+        if (inicio.isBefore(HORARIO_INICIO) || fim.isAfter(HORARIO_FIM)) {
+            throw new BusinessException("Horário fora do expediente (08:00 - 18:00)");
         }
     }
 
-    private void validarDataConsulta(LocalDate dataConsulta) {
-        if (dataConsulta.isBefore(LocalDate.now())) {
-            throw new BusinessException("Não é possível agendar consultas no passado");
+    private void validarDataFutura(LocalDate data) {
+        if (data.isBefore(LocalDate.now())) {
+            throw new BusinessException("Não é possível agendar em datas passadas");
         }
     }
 
-    private void validarHorarioComercial(LocalTime horaInicio, LocalTime horaFim) {
-        if (horaInicio.isBefore(HORA_INICIO_EXPEDIENTE)) {
-            throw new BusinessException("Horário de início deve ser após " + HORA_INICIO_EXPEDIENTE);
-        }
-        if (horaFim.isAfter(HORA_FIM_EXPEDIENTE)) {
-            throw new BusinessException("Horário de fim deve ser antes de " + HORA_FIM_EXPEDIENTE);
-        }
-    }
-
-    private void validarDuracaoConsulta(LocalTime horaInicio, LocalTime horaFim) {
-        long minutos = Duration.between(horaInicio, horaFim).toMinutes();
-
-        if (minutos < DURACAO_MINIMA_MINUTOS) {
-            throw new BusinessException("Duração mínima da consulta: " + DURACAO_MINIMA_MINUTOS + " minutos");
-        }
-        if (minutos > DURACAO_MAXIMA_MINUTOS) {
-            throw new BusinessException("Duração máxima da consulta: " + DURACAO_MAXIMA_MINUTOS + " minutos");
-        }
-    }
-
-    private void validarCapacidadeDiaria(Long dentistaId, LocalDate data) {
-        Long consultasDia = repository.countConsultasDoDia(dentistaId, data);
-        if (consultasDia >= MAX_CONSULTAS_POR_DIA) {
-            throw new BusinessException("Dentista já atingiu capacidade máxima do dia (" +
-                    MAX_CONSULTAS_POR_DIA + " consultas)");
-        }
-    }
-
-    private void validarConflitoDentista(Long dentistaId, LocalDate data,
-                                         LocalTime horaInicio, LocalTime horaFim,
-                                         Long agendamentoIdExcluir) {
-        List<Agendamento> conflitos;
-
-        if (agendamentoIdExcluir != null) {
-            conflitos = repository.findConflitosExcluindo(dentistaId, data, horaInicio, horaFim, agendamentoIdExcluir);
-        } else {
-            conflitos = repository.findConflitos(dentistaId, data, horaInicio, horaFim);
-        }
+    private void validarConflitoDentista(Long dentistaId, LocalDate data, LocalTime inicio, LocalTime fim, Long idExcluir) {
+        List<Agendamento> conflitos = idExcluir == null
+                ? repository.findConflitos(dentistaId, data, inicio, fim)
+                : repository.findConflitosExcluindo(dentistaId, data, inicio, fim, idExcluir);
 
         if (!conflitos.isEmpty()) {
-            throw new BusinessException("Já existe um agendamento neste horário para o dentista selecionado");
+            throw new BusinessException("Dentista já possui agendamento neste horário");
         }
     }
 
-    private void validarConflitoPaciente(Long pacienteId, LocalDate data,
-                                         LocalTime horaInicio, LocalTime horaFim,
-                                         Long agendamentoIdExcluir) {
-        List<Agendamento> conflitos;
-
-        if (agendamentoIdExcluir != null) {
-            conflitos = repository.findConflitosParaPacienteExcluindo(pacienteId, data,
-                    horaInicio, horaFim, agendamentoIdExcluir);
-        } else {
-            conflitos = repository.findConflitosParaPaciente(pacienteId, data, horaInicio, horaFim);
-        }
-
+    private void validarConflitoPaciente(Long pacienteId, LocalDate data, LocalTime inicio, LocalTime fim) {
+        List<Agendamento> conflitos = repository.findConflitoPaciente(pacienteId, data, inicio, fim);
         if (!conflitos.isEmpty()) {
-            throw new BusinessException("Paciente já possui consulta neste horário");
+            throw new BusinessException("Paciente já possui agendamento neste horário");
         }
     }
 
-    private void validarStatusParaEdicao(Agendamento agendamento) {
-        if (!agendamento.isPodeSerEditado()) {
-            throw new BusinessException("Não é possível editar um agendamento com status: " +
-                    agendamento.getStatus().getDescricao());
-        }
-    }
-
-    private void validarTransicaoStatus(Agendamento agendamento, StatusAgendamento novoStatus) {
-        StatusAgendamento statusAtual = agendamento.getStatus();
-
-        switch (novoStatus) {
-            case CONFIRMADO:
-                if (statusAtual != StatusAgendamento.AGENDADO) {
-                    throw new BusinessException("Só é possível confirmar agendamentos com status AGENDADO");
-                }
-                break;
-            case EM_ATENDIMENTO:
-                if (statusAtual != StatusAgendamento.AGENDADO && statusAtual != StatusAgendamento.CONFIRMADO) {
-                    throw new BusinessException("Só é possível iniciar atendimento de agendamentos AGENDADOS ou CONFIRMADOS");
-                }
-                break;
-            case CONCLUIDO:
-                if (statusAtual != StatusAgendamento.EM_ATENDIMENTO) {
-                    throw new BusinessException("Só é possível concluir agendamentos EM_ATENDIMENTO");
-                }
-                break;
-            case CANCELADO:
-                if (!agendamento.isPodeSerCancelado()) {
-                    throw new BusinessException("Não é possível cancelar agendamentos já finalizados");
-                }
-                break;
-            case FALTOU:
-                if (statusAtual == StatusAgendamento.CONCLUIDO || statusAtual == StatusAgendamento.CANCELADO) {
-                    throw new BusinessException("Não é possível marcar falta em agendamentos já finalizados");
-                }
-                break;
-        }
-    }
-
-    private void validarPeriodo(LocalDate dataInicio, LocalDate dataFim) {
-        if (dataInicio.isAfter(dataFim)) {
-            throw new BusinessException("Data de início deve ser anterior à data de fim");
-        }
-    }
-
-    private void registrarHistorico(Long agendamentoId, AgendamentoHistorico.TipoAcao acao,
-                                    String usuario, String descricao) {
-        AgendamentoHistorico historico = AgendamentoHistorico.criar(
-                agendamentoId, acao, usuario != null ? usuario : "system", descricao
-        );
+    private void registrarHistorico(Long agendamentoId, TipoAcao acao, StatusAgendamento anterior, StatusAgendamento novo, String descricao) {
+        AgendamentoHistorico historico = new AgendamentoHistorico();
+        historico.setAgendamentoId(agendamentoId);
+        historico.setAcao(acao);
+        historico.setStatusAnterior(anterior);
+        historico.setStatusNovo(novo);
+        historico.setUsuarioResponsavel(getUsuarioLogado());
+        historico.setDescricao(descricao);
+        historico.setDataHora(LocalDateTime.now());
         historicoRepository.save(historico);
     }
 
-    private void registrarMudancaStatus(Long agendamentoId, StatusAgendamento statusAnterior,
-                                        StatusAgendamento statusNovo, String descricao) {
-        AgendamentoHistorico historico = AgendamentoHistorico.criarMudancaStatus(
-                agendamentoId, statusAnterior, statusNovo, "system", descricao
-        );
-        historicoRepository.save(historico);
+    private String getUsuarioLogado() {
+        try {
+            return SecurityContextHolder.getContext().getAuthentication().getName();
+        } catch (Exception e) {
+            return "sistema";
+        }
     }
 }

@@ -6,9 +6,11 @@ import consultorio.domain.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.util.List;
+import java.util.Map;
 
 public interface UserService {
+
+    // ==================== CRUD ====================
 
     UserResponse criar(UserRequest request, String criadoPor);
 
@@ -16,19 +18,33 @@ public interface UserService {
 
     UserResponse buscarPorUsername(String username);
 
+    UserResponse buscarPorEmail(String email);
+
+    UserResponse atualizar(Long id, UserRequest request);
+
+    void deletar(Long id);
+
+    // ==================== LISTAGENS ====================
+
     Page<UserResponse> listarTodos(Pageable pageable);
 
     Page<UserResponse> listarPorStatus(Boolean ativo, Pageable pageable);
 
     Page<UserResponse> listarPorRole(User.Role role, Pageable pageable);
 
-    UserResponse atualizar(Long id, UserRequest request);
+    Page<UserResponse> buscar(String termo, Pageable pageable);
 
-    void inativar(Long id);
+    // ==================== STATUS ====================
 
     void ativar(Long id);
 
-    void deletar(Long id);
+    void inativar(Long id);
+
+    // ==================== ADMIN ====================
 
     void criarAdminInicial();
+
+    // ==================== ESTATÍSTICAS ====================
+
+    Map<String, Object> obterEstatisticas();
 }

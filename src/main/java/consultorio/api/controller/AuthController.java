@@ -1,35 +1,55 @@
 package consultorio.api.controller;
 
+import consultorio.api.dto.request.ChangePasswordRequest;
 import consultorio.api.dto.request.LoginRequest;
 import consultorio.api.dto.request.RefreshTokenRequest;
 import consultorio.api.dto.response.LoginResponse;
+import consultorio.domain.entity.User;
 import consultorio.domain.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-@Slf4j
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Tag(name = "Autenticação", description = "Endpoints de autenticação")
+@Tag(name = "Autenticação", description = "Login, logout e gestão de tokens")
 public class AuthController {
 
     private final AuthService authService;
 
     @PostMapping("/login")
-    @Operation(summary = "Login")
+    @Operation(summary = "Login (por email ou username)")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/refresh")
-    @Operation(summary = "Renovar token")
+    @Operation(summary = "Renovar tokens")
     public ResponseEntity<LoginResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(authService.refreshToken(request));
+    }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Logout")
+    public ResponseEntity<Map<String, String>> logout(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+        authService.logout(token);
+        return ResponseEntity.ok(Map.of("message", "Logout realizado com sucesso"));
+    }
+
+    @PostMapping("/alterar-senha")
+    @Operation(summary = "Alterar senha do usuário logado")
+    public ResponseEntity<Map<String, String>> alterarSenha(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        authService.alterarSenha(user.getId(), request);
+        return ResponseEntity.ok(Map.of("message", "Senha alterada com sucesso"));
     }
 }

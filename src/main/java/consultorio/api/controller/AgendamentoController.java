@@ -1,6 +1,7 @@
 package consultorio.api.controller;
 
 import consultorio.api.dto.request.AgendamentoRequest;
+import consultorio.api.dto.request.CancelamentoRequest;
 import consultorio.api.dto.response.AgendamentoResponse;
 import consultorio.api.dto.response.AgendamentoResumoResponse;
 import consultorio.domain.entity.Agendamento.StatusAgendamento;
@@ -31,26 +32,40 @@ public class AgendamentoController {
 
     private final AgendamentoService service;
 
+    // ==================== CRUD ====================
+
     @PostMapping
-    @Operation(summary = "Criar novo agendamento")
+    @Operation(summary = "Criar agendamento")
     public ResponseEntity<AgendamentoResponse> criar(@Valid @RequestBody AgendamentoRequest request) {
-        AgendamentoResponse response = service.criar(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.criar(request));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Buscar agendamento por ID")
     public ResponseEntity<AgendamentoResponse> buscarPorId(@PathVariable Long id) {
-        AgendamentoResponse response = service.buscarPorId(id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.buscarPorId(id));
     }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualizar agendamento")
+    public ResponseEntity<AgendamentoResponse> atualizar(@PathVariable Long id, @Valid @RequestBody AgendamentoRequest request) {
+        return ResponseEntity.ok(service.atualizar(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Deletar agendamento")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletar(@PathVariable Long id) {
+        service.deletar(id);
+    }
+
+    // ==================== LISTAGENS ====================
 
     @GetMapping
     @Operation(summary = "Listar todos os agendamentos")
     public ResponseEntity<Page<AgendamentoResumoResponse>> listarTodos(
             @PageableDefault(size = 20, sort = "dataConsulta", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<AgendamentoResumoResponse> response = service.listarTodos(pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.listarTodos(pageable));
     }
 
     @GetMapping("/dentista/{dentistaId}")
@@ -58,8 +73,7 @@ public class AgendamentoController {
     public ResponseEntity<Page<AgendamentoResumoResponse>> listarPorDentista(
             @PathVariable Long dentistaId,
             @PageableDefault(size = 20, sort = "dataConsulta", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<AgendamentoResumoResponse> response = service.listarPorDentista(dentistaId, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.listarPorDentista(dentistaId, pageable));
     }
 
     @GetMapping("/paciente/{pacienteId}")
@@ -67,8 +81,7 @@ public class AgendamentoController {
     public ResponseEntity<Page<AgendamentoResumoResponse>> listarPorPaciente(
             @PathVariable Long pacienteId,
             @PageableDefault(size = 20, sort = "dataConsulta", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<AgendamentoResumoResponse> response = service.listarPorPaciente(pacienteId, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.listarPorPaciente(pacienteId, pageable));
     }
 
     @GetMapping("/status/{status}")
@@ -76,180 +89,156 @@ public class AgendamentoController {
     public ResponseEntity<Page<AgendamentoResumoResponse>> listarPorStatus(
             @PathVariable StatusAgendamento status,
             @PageableDefault(size = 20, sort = "dataConsulta", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<AgendamentoResumoResponse> response = service.listarPorStatus(status, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.listarPorStatus(status, pageable));
     }
 
     @GetMapping("/periodo")
     @Operation(summary = "Listar agendamentos por período")
     public ResponseEntity<Page<AgendamentoResumoResponse>> listarPorPeriodo(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
             @PageableDefault(size = 20, sort = "dataConsulta", direction = Sort.Direction.ASC) Pageable pageable) {
-        Page<AgendamentoResumoResponse> response = service.listarPorPeriodo(dataInicio, dataFim, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.listarPorPeriodo(inicio, fim, pageable));
     }
 
-    @GetMapping("/agenda/dentista/{dentistaId}")
-    @Operation(summary = "Buscar agenda do dia de um dentista")
-    public ResponseEntity<List<AgendamentoResumoResponse>> buscarAgendaDoDentista(
-            @PathVariable Long dentistaId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
-        List<AgendamentoResumoResponse> response = service.buscarAgendaDoDia(dentistaId, data);
-        return ResponseEntity.ok(response);
-    }
+    // ==================== AGENDA ====================
 
     @GetMapping("/agenda/dia")
-    @Operation(summary = "Buscar agenda do dia de todos os dentistas")
-    public ResponseEntity<List<AgendamentoResumoResponse>> buscarAgendaDoDia(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
-        List<AgendamentoResumoResponse> response = service.buscarAgendaDoDia(data);
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Buscar agenda do dia")
+    public ResponseEntity<List<AgendamentoResumoResponse>> agendaDoDia(
+            @RequestParam(required = false) Long dentistaId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
+
+        LocalDate dataConsulta = data != null ? data : LocalDate.now();
+
+        List<AgendamentoResumoResponse> agenda = dentistaId != null
+                ? service.buscarAgendaDoDia(dentistaId, dataConsulta)
+                : service.buscarAgendaDoDia(dataConsulta);
+
+        return ResponseEntity.ok(agenda);
     }
 
-    @GetMapping("/paciente/{pacienteId}/proximos")
+    @GetMapping("/proximos/paciente/{pacienteId}")
     @Operation(summary = "Buscar próximos agendamentos do paciente")
-    public ResponseEntity<List<AgendamentoResumoResponse>> buscarProximosAgendamentos(
-            @PathVariable Long pacienteId) {
-        List<AgendamentoResumoResponse> response = service.buscarProximosAgendamentos(pacienteId);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<List<AgendamentoResumoResponse>> proximosPaciente(@PathVariable Long pacienteId) {
+        return ResponseEntity.ok(service.buscarProximosPaciente(pacienteId));
     }
 
-    @GetMapping("/dentista/{dentistaId}/proximos")
+    @GetMapping("/proximos/dentista/{dentistaId}")
     @Operation(summary = "Buscar próximos agendamentos do dentista")
-    public ResponseEntity<List<AgendamentoResumoResponse>> buscarProximosAgendamentosDentista(
-            @PathVariable Long dentistaId) {
-        List<AgendamentoResumoResponse> response = service.buscarProximosAgendamentosDentista(dentistaId);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<List<AgendamentoResumoResponse>> proximosDentista(@PathVariable Long dentistaId) {
+        return ResponseEntity.ok(service.buscarProximosDentista(dentistaId));
     }
+
+    // ==================== MUDANÇA DE STATUS ====================
+
+    @PatchMapping("/{id}/confirmar")
+    @Operation(summary = "Confirmar agendamento")
+    public ResponseEntity<AgendamentoResponse> confirmar(@PathVariable Long id) {
+        return ResponseEntity.ok(service.confirmar(id));
+    }
+
+    @PatchMapping("/{id}/iniciar")
+    @Operation(summary = "Iniciar atendimento")
+    public ResponseEntity<AgendamentoResponse> iniciarAtendimento(@PathVariable Long id) {
+        return ResponseEntity.ok(service.iniciarAtendimento(id));
+    }
+
+    @PatchMapping("/{id}/concluir")
+    @Operation(summary = "Concluir atendimento")
+    public ResponseEntity<AgendamentoResponse> concluir(@PathVariable Long id) {
+        return ResponseEntity.ok(service.concluir(id));
+    }
+
+    @PatchMapping("/{id}/cancelar")
+    @Operation(summary = "Cancelar agendamento")
+    public ResponseEntity<AgendamentoResponse> cancelar(@PathVariable Long id, @Valid @RequestBody CancelamentoRequest request) {
+        return ResponseEntity.ok(service.cancelar(id, request.getMotivo()));
+    }
+
+    @PatchMapping("/{id}/falta")
+    @Operation(summary = "Marcar falta")
+    public ResponseEntity<AgendamentoResponse> marcarFalta(@PathVariable Long id) {
+        return ResponseEntity.ok(service.marcarFalta(id));
+    }
+
+    // ==================== DISPONIBILIDADE ====================
 
     @GetMapping("/disponibilidade")
-    @Operation(summary = "Verificar disponibilidade de horário")
-    public ResponseEntity<Map<String, Boolean>> verificarDisponibilidade(
+    @Operation(summary = "Verificar disponibilidade")
+    public ResponseEntity<Map<String, Object>> verificarDisponibilidade(
             @RequestParam Long dentistaId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime horaInicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime horaFim) {
+
         boolean disponivel = service.verificarDisponibilidade(dentistaId, data, horaInicio, horaFim);
         return ResponseEntity.ok(Map.of("disponivel", disponivel));
     }
 
     @GetMapping("/horarios-disponiveis")
     @Operation(summary = "Buscar horários disponíveis")
-    public ResponseEntity<List<LocalTime[]>> buscarHorariosDisponiveis(
+    public ResponseEntity<List<Map<String, LocalTime>>> horariosDisponiveis(
             @RequestParam Long dentistaId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
             @RequestParam(defaultValue = "30") int duracaoMinutos) {
-        List<LocalTime[]> horarios = service.buscarHorariosDisponiveis(dentistaId, data, duracaoMinutos);
-        return ResponseEntity.ok(horarios);
+        return ResponseEntity.ok(service.buscarHorariosDisponiveis(dentistaId, data, duracaoMinutos));
     }
 
-    @GetMapping("/consultas-passadas-nao-finalizadas")
-    @Operation(summary = "Buscar consultas passadas não finalizadas")
-    public ResponseEntity<List<AgendamentoResumoResponse>> buscarConsultasPassadasNaoFinalizadas() {
-        List<AgendamentoResumoResponse> response = service.buscarConsultasPassadasNaoFinalizadas();
-        return ResponseEntity.ok(response);
+    // ==================== LEMBRETES ====================
+
+    @PostMapping("/lembretes")
+    @Operation(summary = "Enviar lembretes para uma data")
+    public ResponseEntity<Map<String, Integer>> enviarLembretes(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
+        int enviados = service.enviarLembretes(data != null ? data : LocalDate.now().plusDays(1));
+        return ResponseEntity.ok(Map.of("enviados", enviados));
     }
 
-    @GetMapping("/consultas-em-atendimento")
-    @Operation(summary = "Buscar consultas em atendimento")
-    public ResponseEntity<List<AgendamentoResumoResponse>> buscarConsultasEmAtendimento() {
-        List<AgendamentoResumoResponse> response = service.buscarConsultasEmAtendimento();
-        return ResponseEntity.ok(response);
-    }
+    // ==================== ESTATÍSTICAS ====================
 
-    @GetMapping("/paciente/{pacienteId}/historico")
-    @Operation(summary = "Buscar histórico de consultas do paciente")
-    public ResponseEntity<Page<AgendamentoResumoResponse>> buscarHistoricoConsultasPaciente(
-            @PathVariable Long pacienteId,
-            @PageableDefault(size = 20, sort = "dataConsulta", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<AgendamentoResumoResponse> response = service.buscarHistoricoConsultasPaciente(pacienteId, pageable);
-        return ResponseEntity.ok(response);
+    @GetMapping("/estatisticas")
+    @Operation(summary = "Obter estatísticas")
+    public ResponseEntity<Map<String, Object>> estatisticas(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
+        return ResponseEntity.ok(service.obterEstatisticas(inicio, fim));
     }
 
     @GetMapping("/estatisticas/consultas-dia")
     @Operation(summary = "Contar consultas do dia")
-    public ResponseEntity<Map<String, Long>> contarConsultasDoDia(
+    public ResponseEntity<Map<String, Long>> consultasDoDia(
             @RequestParam Long dentistaId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
-        Long total = service.contarConsultasDoDia(dentistaId, data);
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
+        long total = service.contarConsultasDoDia(dentistaId, data != null ? data : LocalDate.now());
         return ResponseEntity.ok(Map.of("total", total));
     }
 
-    @GetMapping("/estatisticas/faltas-paciente/{pacienteId}")
+    @GetMapping("/estatisticas/faltas/{pacienteId}")
     @Operation(summary = "Contar faltas do paciente")
-    public ResponseEntity<Map<String, Long>> contarFaltasPaciente(@PathVariable Long pacienteId) {
-        Long total = service.contarFaltasPaciente(pacienteId);
-        return ResponseEntity.ok(Map.of("total", total));
+    public ResponseEntity<Map<String, Long>> faltasPaciente(@PathVariable Long pacienteId) {
+        return ResponseEntity.ok(Map.of("totalFaltas", service.contarFaltasPaciente(pacienteId)));
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Atualizar agendamento")
-    public ResponseEntity<AgendamentoResponse> atualizar(
-            @PathVariable Long id,
-            @Valid @RequestBody AgendamentoRequest request) {
-        AgendamentoResponse response = service.atualizar(id, request);
-        return ResponseEntity.ok(response);
+    // ==================== CONSULTAS ESPECIAIS ====================
+
+    @GetMapping("/pendentes")
+    @Operation(summary = "Buscar agendamentos passados não finalizados")
+    public ResponseEntity<List<AgendamentoResumoResponse>> pendentes() {
+        return ResponseEntity.ok(service.buscarPassadosNaoFinalizados());
     }
 
-    @PatchMapping("/{id}/status")
-    @Operation(summary = "Atualizar status do agendamento")
-    public ResponseEntity<AgendamentoResponse> atualizarStatus(
-            @PathVariable Long id,
-            @RequestParam StatusAgendamento status) {
-        AgendamentoResponse response = service.atualizarStatus(id, status);
-        return ResponseEntity.ok(response);
+    @GetMapping("/em-atendimento")
+    @Operation(summary = "Buscar agendamentos em atendimento")
+    public ResponseEntity<List<AgendamentoResumoResponse>> emAtendimento() {
+        return ResponseEntity.ok(service.buscarEmAtendimento());
     }
 
-    @PatchMapping("/{id}/confirmar")
-    @Operation(summary = "Confirmar agendamento")
-    public ResponseEntity<Void> confirmar(@PathVariable Long id) {
-        service.confirmar(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping("/{id}/iniciar")
-    @Operation(summary = "Iniciar atendimento")
-    public ResponseEntity<Void> iniciarAtendimento(@PathVariable Long id) {
-        service.iniciarAtendimento(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping("/{id}/concluir")
-    @Operation(summary = "Concluir agendamento")
-    public ResponseEntity<Void> concluir(@PathVariable Long id) {
-        service.concluir(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping("/{id}/cancelar")
-    @Operation(summary = "Cancelar agendamento")
-    public ResponseEntity<Void> cancelar(
-            @PathVariable Long id,
-            @RequestParam(required = false) String motivo) {
-        service.cancelar(id, motivo);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping("/{id}/falta")
-    @Operation(summary = "Marcar falta")
-    public ResponseEntity<Void> marcarFalta(@PathVariable Long id) {
-        service.marcarFalta(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/enviar-lembretes")
-    @Operation(summary = "Enviar lembretes do dia")
-    public ResponseEntity<Void> enviarLembretes(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
-        service.enviarLembretes(data);
-        return ResponseEntity.ok().build();
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Deletar agendamento")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        service.deletar(id);
-        return ResponseEntity.noContent().build();
+    @GetMapping("/historico/paciente/{pacienteId}")
+    @Operation(summary = "Buscar histórico de consultas do paciente")
+    public ResponseEntity<Page<AgendamentoResumoResponse>> historicoPaciente(
+            @PathVariable Long pacienteId,
+            @PageableDefault(size = 20, sort = "dataConsulta", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(service.buscarHistoricoPaciente(pacienteId, pageable));
     }
 }
