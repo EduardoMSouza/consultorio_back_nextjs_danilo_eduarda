@@ -1,6 +1,7 @@
 package consultorio.api.dto.request.pessoa;
 
-import consultorio.domain.entity.pessoa.User.Role;
+
+import consultorio.domain.entity.pessoa.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -22,5 +23,5 @@ public record UserRequest(
         @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
         String password,
 
-        Role role
+        User.Role role
 ) {}

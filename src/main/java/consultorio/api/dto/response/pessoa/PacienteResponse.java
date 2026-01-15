@@ -1,5 +1,7 @@
+// PacienteResponse.java
 package consultorio.api.dto.response.pessoa;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import consultorio.api.dto.response.pessoa.embeddable.paciente.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -21,6 +23,15 @@ public class PacienteResponse {
     private ConvenioResponse convenio;
     private InspecaoBucalResponse inspecaoBucal;
     private QuestionarioSaudeResponse questionarioSaude;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private String observacoes;
+    private Boolean ativo;
+    private Integer idade;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime criadoEm;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime atualizadoEm;
+
+
 }

@@ -1,3 +1,4 @@
+// ResponsavelResponse.java
 package consultorio.api.dto.response.pessoa.embeddable.paciente;
 
 import lombok.AllArgsConstructor;
@@ -15,9 +16,11 @@ public class ResponsavelResponse {
     private String rg;
     private String orgaoExpedidor;
     private String cpf;
+    private String cpfFormatado; // Populado pelo backend com formatação
     private String estadoCivil;
     private String conjuge;
     private String rgConjuge;
     private String orgaoExpedidorConjuge;
     private String cpfConjuge;
+    private String cpfConjugeFormatado; // Populado pelo backend com formatação
 }

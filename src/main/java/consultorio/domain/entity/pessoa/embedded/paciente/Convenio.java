@@ -15,7 +15,7 @@ import lombok.Setter;
 public class Convenio {
 
     @Column(name = "convenio_paciente")
-    private String nome;
+    private String nomeConvenio;
 
     @Column(name = "numero_inscricao_convenio")
     private String numeroInscricao;

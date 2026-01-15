@@ -27,4 +27,3 @@ public class QuestionarioSaudeResponse {
     private String habitos;
     private String antecedentesFamiliares;
 }
-

@@ -1,3 +1,4 @@
+// PacienteRequest.java
 package consultorio.api.dto.request.pessoa;
 
 import consultorio.api.dto.request.pessoa.embedded.paciente.*;
@@ -32,4 +33,7 @@ public class PacienteRequest {
 
     @Valid
     private QuestionarioSaudeRequest questionarioSaude;
+
+    private String observacoes;
+
 }

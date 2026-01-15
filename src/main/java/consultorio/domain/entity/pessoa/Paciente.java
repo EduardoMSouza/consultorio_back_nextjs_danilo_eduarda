@@ -1,8 +1,6 @@
 package consultorio.domain.entity.pessoa;
 
 import consultorio.domain.entity.pessoa.embedded.paciente.*;
-import consultorio.domain.entity.pessoa.enums.EstadoCivil;
-import consultorio.domain.entity.pessoa.enums.Sexo;
 import consultorio.domain.entity.tratamento.EvolucaoTratamento;
 import consultorio.domain.entity.tratamento.PlanoDental;
 import jakarta.persistence.*;
@@ -14,6 +12,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,10 +26,12 @@ import java.util.List;
  */
 @Entity
 @Table(name = "pacientes", indexes = {
+        @Index(name = "idx_paciente_prontuario", columnList = "prontuario_numero", unique = true),
         @Index(name = "idx_paciente_cpf", columnList = "cpf", unique = true),
-        @Index(name = "idx_paciente_email", columnList = "email", unique = true),
-        @Index(name = "idx_paciente_telefone", columnList = "telefone"),
-        @Index(name = "idx_paciente_nome", columnList = "nome"),
+        @Index(name = "idx_paciente_email", columnList = "email_paciente"),
+        @Index(name = "idx_paciente_telefone", columnList = "telefone_paciente"),
+        @Index(name = "idx_paciente_nome", columnList = "nome_paciente"),
+        @Index(name = "idx_paciente_status", columnList = "status_paciente"),
         @Index(name = "idx_paciente_ativo", columnList = "ativo")
 })
 @Getter
@@ -45,32 +46,9 @@ public class Paciente {
     @Column(name = "id_paciente")
     private Long id;
 
-    // Dados básicos com campos diretos para otimização de queries
-    @Column(name = "nome", nullable = false, length = 150)
-    private String nome;
-
-    @Column(name = "cpf", nullable = false, unique = true, length = 14)
-    private String cpf;
-
-    @Column(name = "data_nascimento", nullable = false)
-    private LocalDateTime dataNascimento;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "sexo", nullable = false, length = 20)
-    private Sexo sexo;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "estado_civil", length = 20)
-    private EstadoCivil estadoCivil;
-
-    @Column(name = "email", nullable = false, unique = true, length = 100)
-    private String email;
-
-    @Column(name = "telefone", nullable = false, length = 20)
-    private String telefone;
-
-    @Column(name = "celular", length = 20)
-    private String celular;
+    // Dados básicos do paciente
+    @Embedded
+    private DadosBasicos dadosBasicos = new DadosBasicos();
 
     // Responsável pelo tratamento (para menores ou dependentes)
     @Embedded
@@ -146,12 +124,12 @@ public class Paciente {
      * @return idade em anos
      */
     public int getIdade() {
-        if (dataNascimento == null) {
+        if (dadosBasicos.getDataNascimento() == null) {
             return 0;
         }
         return java.time.Period.between(
-                dataNascimento.toLocalDate(),
-                LocalDateTime.now().toLocalDate()
+                dadosBasicos.getDataNascimento(),
+                LocalDate.now()
         ).getYears();
     }
 
@@ -162,8 +140,8 @@ public class Paciente {
      */
     public boolean possuiConvenio() {
         return convenio != null &&
-                convenio.getNome() != null &&
-                !convenio.getNome().trim().isEmpty();
+                convenio.getNomeConvenio() != null &&
+                !convenio.getNomeConvenio().trim().isEmpty();
     }
 
     /**
@@ -172,6 +150,7 @@ public class Paciente {
      * @return CPF formatado (xxx.xxx.xxx-xx)
      */
     public String getCpfFormatado() {
+        String cpf = dadosBasicos.getCpf();
         if (cpf == null || cpf.length() != 11) {
             return cpf;
         }
@@ -185,7 +164,7 @@ public class Paciente {
      */
     public void setCpf(String cpf) {
         if (cpf != null) {
-            this.cpf = cpf.replaceAll("[^0-9]", "");
+            dadosBasicos.setCpf(cpf.replaceAll("[^0-9]", ""));
         }
     }
 
@@ -196,7 +175,7 @@ public class Paciente {
      */
     public void setEmail(String email) {
         if (email != null) {
-            this.email = email.trim().toLowerCase();
+            dadosBasicos.setEmail(email.trim().toLowerCase());
         }
     }
 
@@ -207,7 +186,49 @@ public class Paciente {
      */
     public void setNome(String nome) {
         if (nome != null) {
-            this.nome = nome.trim();
+            dadosBasicos.setNome(nome.trim());
         }
+    }
+
+    /**
+     * Método auxiliar para obter o nome do paciente
+     */
+    public String getNome() {
+        return dadosBasicos != null ? dadosBasicos.getNome() : null;
+    }
+
+    /**
+     * Método auxiliar para obter o CPF do paciente
+     */
+    public String getCpf() {
+        return dadosBasicos != null ? dadosBasicos.getCpf() : null;
+    }
+
+    /**
+     * Método auxiliar para obter o email do paciente
+     */
+    public String getEmail() {
+        return dadosBasicos != null ? dadosBasicos.getEmail() : null;
+    }
+
+    /**
+     * Método auxiliar para obter o telefone do paciente
+     */
+    public String getTelefone() {
+        return dadosBasicos != null ? dadosBasicos.getTelefone() : null;
+    }
+
+    /**
+     * Método auxiliar para obter a data de nascimento
+     */
+    public LocalDate getDataNascimento() {
+        return dadosBasicos != null ? dadosBasicos.getDataNascimento() : null;
+    }
+
+    /**
+     * Método auxiliar para obter o prontuário
+     */
+    public String getProntuarioNumero() {
+        return dadosBasicos != null ? dadosBasicos.getProntuarioNumero() : null;
     }
 }

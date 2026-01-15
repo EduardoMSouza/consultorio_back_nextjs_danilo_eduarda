@@ -3,39 +3,31 @@ package consultorio.api.mapper.pessoa;
 import consultorio.api.dto.request.pessoa.DentistaRequest;
 import consultorio.api.dto.response.pessoa.DentistaResponse;
 import consultorio.domain.entity.pessoa.Dentista;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
 
 @Component
 public class DentistaMapper {
 
+    private final ModelMapper modelMapper;
+
+    public DentistaMapper(ModelMapper modelMapper) {
+        this.modelMapper = modelMapper;
+
+        // Configurações personalizadas se necessário
+        this.modelMapper.createTypeMap(DentistaRequest.class, Dentista.class);
+        this.modelMapper.createTypeMap(Dentista.class, DentistaResponse.class);
+    }
+
     public Dentista toEntity(DentistaRequest request) {
-        Dentista dentista = new Dentista();
-        dentista.setNome(request.getNome());
-        dentista.setCro(request.getCro());
-        dentista.setEspecialidade(request.getEspecialidade());
-        dentista.setTelefone(request.getTelefone());
-        dentista.setEmail(request.getEmail());
-        return dentista;
+        return modelMapper.map(request, Dentista.class);
     }
 
     public DentistaResponse toResponse(Dentista dentista) {
-        DentistaResponse response = new DentistaResponse();
-        response.setId(dentista.getId());
-        response.setNome(dentista.getNome());
-        response.setCro(dentista.getCro());
-        response.setEspecialidade(dentista.getEspecialidade());
-        response.setTelefone(dentista.getTelefone());
-        response.setEmail(dentista.getEmail());
-        response.setAtivo(dentista.getAtivo());
-        response.setCriadoEm(dentista.getCriadoEm());
-        response.setAtualizadoEm(dentista.getAtualizadoEm());
-        return response;
+        return modelMapper.map(dentista, DentistaResponse.class);
     }
 
     public void updateEntity(DentistaRequest request, Dentista dentista) {
-        dentista.setNome(request.getNome());
-        dentista.setEspecialidade(request.getEspecialidade());
-        dentista.setTelefone(request.getTelefone());
-        dentista.setEmail(request.getEmail());
+        modelMapper.map(request, dentista);
     }
 }

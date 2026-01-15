@@ -1,6 +1,6 @@
 package consultorio.api.dto.response.pessoa;
 
-import consultorio.domain.entity.pessoa.User.Role;
+import consultorio.domain.entity.pessoa.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,7 +18,7 @@ public class UserResponse {
     private String nome;
     private String username;
     private String email;
-    private Role role;
+    private User.Role role;
     private Boolean ativo;
     private LocalDateTime ultimoLogin;
     private LocalDateTime criadoEm;

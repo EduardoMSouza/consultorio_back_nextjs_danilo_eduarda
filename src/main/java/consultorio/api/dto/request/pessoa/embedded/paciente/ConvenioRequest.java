@@ -1,3 +1,4 @@
+// ConvenioRequest.java
 package consultorio.api.dto.request.pessoa.embedded.paciente;
 
 import lombok.AllArgsConstructor;
@@ -11,6 +12,9 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ConvenioRequest {
 
-    private String nome;
+    @jakarta.validation.constraints.Size(max = 100, message = "Nome do convênio deve ter no máximo 100 caracteres")
+    private String nomeConvenio;
+
+    @jakarta.validation.constraints.Size(max = 50, message = "Número de inscrição deve ter no máximo 50 caracteres")
     private String numeroInscricao;
 }

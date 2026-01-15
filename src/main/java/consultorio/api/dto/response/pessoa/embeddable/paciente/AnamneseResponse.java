@@ -1,4 +1,5 @@
-package consultorio.api.dto.response.pessoa.embeddable.paciente;
+package consultorio.api.dto.response.pessoa.embeddable.paciente;// AnamneseResponse.java
+
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -35,4 +36,3 @@ public class AnamneseResponse {
     private String queixaPrincipal;
     private String evolucaoDoencaAtual;
 }
-

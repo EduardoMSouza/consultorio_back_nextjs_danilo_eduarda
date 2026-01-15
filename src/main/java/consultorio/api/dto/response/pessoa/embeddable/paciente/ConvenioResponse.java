@@ -11,7 +11,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ConvenioResponse {
 
-    private String nome;
+    private String nomeConvenio;
     private String numeroInscricao;
 }
 

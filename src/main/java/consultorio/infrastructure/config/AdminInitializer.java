@@ -1,6 +1,6 @@
 package consultorio.infrastructure.config;
 
-import consultorio.domain.service.UserService;
+import consultorio.domain.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;

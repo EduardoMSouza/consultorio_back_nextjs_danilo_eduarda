@@ -1,3 +1,4 @@
+// DadosBasicosResponse.java
 package consultorio.api.dto.response.pessoa.embeddable.paciente;
 
 import lombok.AllArgsConstructor;
@@ -15,6 +16,7 @@ public class DadosBasicosResponse {
 
     private String prontuarioNumero;
     private String nome;
+    private String email;
     private String telefone;
     private String rg;
     private String orgaoExpedidor;
@@ -27,4 +29,3 @@ public class DadosBasicosResponse {
     private String indicadoPor;
     private Boolean status;
 }
-
