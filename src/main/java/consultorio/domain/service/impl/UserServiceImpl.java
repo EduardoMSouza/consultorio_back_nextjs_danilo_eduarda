@@ -1,5 +1,6 @@
 package consultorio.domain.service.impl;
 
+<<<<<<< HEAD
 import consultorio.api.dto.request.pessoa.UserRequest;
 import consultorio.api.dto.response.pessoa.UserResponse;
 import consultorio.api.exception.BusinessException;
@@ -7,6 +8,15 @@ import consultorio.api.exception.ResourceNotFoundException;
 import consultorio.api.mapper.pessoa.UserMapper;
 import consultorio.domain.entity.pessoa.User;
 import consultorio.domain.entity.pessoa.User.Role;
+=======
+import consultorio.api.dto.request.UserRequest;
+import consultorio.api.dto.response.UserResponse;
+import consultorio.api.exception.BusinessException;
+import consultorio.api.exception.ResourceNotFoundException;
+import consultorio.api.mapper.UserMapper;
+import consultorio.domain.entity.User;
+import consultorio.domain.entity.User.Role;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import consultorio.domain.repository.UserRepository;
 import consultorio.domain.service.UserService;
 import lombok.RequiredArgsConstructor;

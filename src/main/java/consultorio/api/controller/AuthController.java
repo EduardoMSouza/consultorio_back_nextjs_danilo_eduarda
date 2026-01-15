@@ -1,10 +1,18 @@
 package consultorio.api.controller;
 
+<<<<<<< HEAD
 import consultorio.api.dto.request.auth.ChangePasswordRequest;
 import consultorio.api.dto.request.auth.LoginRequest;
 import consultorio.api.dto.request.auth.RefreshTokenRequest;
 import consultorio.api.dto.response.auth.LoginResponse;
 import consultorio.domain.entity.pessoa.User;
+=======
+import consultorio.api.dto.request.ChangePasswordRequest;
+import consultorio.api.dto.request.LoginRequest;
+import consultorio.api.dto.request.RefreshTokenRequest;
+import consultorio.api.dto.response.LoginResponse;
+import consultorio.domain.entity.User;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import consultorio.domain.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

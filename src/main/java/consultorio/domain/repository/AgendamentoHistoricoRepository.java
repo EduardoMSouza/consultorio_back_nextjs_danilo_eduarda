@@ -1,7 +1,12 @@
 package consultorio.domain.repository;
 
+<<<<<<< HEAD
 import consultorio.domain.entity.agendamento.AgendamentoHistorico;
 import consultorio.domain.entity.agendamento.AgendamentoHistorico.TipoAcao;
+=======
+import consultorio.domain.entity.AgendamentoHistorico;
+import consultorio.domain.entity.AgendamentoHistorico.TipoAcao;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

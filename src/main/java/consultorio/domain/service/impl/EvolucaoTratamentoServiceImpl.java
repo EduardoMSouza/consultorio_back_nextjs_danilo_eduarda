@@ -1,5 +1,6 @@
 package consultorio.domain.service.impl;
 
+<<<<<<< HEAD
 import consultorio.api.dto.request.tratamento.EvolucaoTratamentoRequest;
 import consultorio.api.dto.response.tratamento.EvolucaoTratamentoResponse;
 import consultorio.api.mapper.tratamento.EvolucaoTratamentoMapper;
@@ -17,6 +18,19 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+=======
+import consultorio.api.dto.request.EvolucaoTratamentoRequest;
+import consultorio.api.dto.response.EvolucaoTratamentoResponse;
+import consultorio.api.exception.ResourceNotFoundException;
+import consultorio.api.mapper.EvolucaoTratamentoMapper;
+import consultorio.domain.entity.EvolucaoTratamento;
+import consultorio.domain.repository.EvolucaoTratamentoRepository;
+import consultorio.domain.service.EvolucaoTratamentoService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,11 +38,15 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+<<<<<<< HEAD
 @Transactional
+=======
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 public class EvolucaoTratamentoServiceImpl implements EvolucaoTratamentoService {
 
     private final EvolucaoTratamentoRepository repository;
     private final EvolucaoTratamentoMapper mapper;
+<<<<<<< HEAD
     private final PacienteService pacienteService;
     private final DentistaService dentistaService;
     private final PlanoDentalService planoDentalService;
@@ -54,10 +72,23 @@ public class EvolucaoTratamentoServiceImpl implements EvolucaoTratamentoService 
         evolucao = repository.save(evolucao);
         log.info("Evolução criada com sucesso. ID: {}", evolucao.getId());
 
+=======
+
+    @Override
+    @Transactional
+    public EvolucaoTratamentoResponse criar(EvolucaoTratamentoRequest request) {
+        log.info("Criando evolução de tratamento");
+
+        EvolucaoTratamento evolucao = mapper.toEntity(request);
+        evolucao = repository.save(evolucao);
+
+        log.info("Evolução de tratamento {} criada", evolucao.getId());
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
         return mapper.toResponse(evolucao);
     }
 
     @Override
+<<<<<<< HEAD
     public EvolucaoTratamentoResponse buscarPorId(Long id) {
         log.debug("Buscando evolução por ID: {}", id);
 
@@ -167,10 +198,70 @@ public class EvolucaoTratamentoServiceImpl implements EvolucaoTratamentoService 
         evolucao = repository.save(evolucao);
         log.info("Evolução atualizada com sucesso. ID: {}", id);
 
+=======
+    @Transactional(readOnly = true)
+    public EvolucaoTratamentoResponse buscarPorId(Long id) {
+        EvolucaoTratamento evolucao = findById(id);
         return mapper.toResponse(evolucao);
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<EvolucaoTratamentoResponse> listarTodos() {
+        return repository.findAll().stream()
+                .filter(e -> !e.getDeletado())
+                .map(mapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EvolucaoTratamentoResponse> listarPorPaciente(Long pacienteId) {
+        return repository.findByPacienteIdAndDeletadoFalseOrderByDataEvolucaoDesc(pacienteId).stream()
+                .map(mapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EvolucaoTratamentoResponse> listarPorDentista(Long dentistaId) {
+        return repository.findByDentistaIdAndDeletadoFalseOrderByDataEvolucaoDesc(dentistaId).stream()
+                .map(mapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EvolucaoTratamentoResponse> listarPorPacienteEDentista(Long pacienteId, Long dentistaId) {
+        return repository.findByPacienteIdAndDentistaIdAndDeletadoFalseOrderByDataEvolucaoDesc(pacienteId, dentistaId).stream()
+                .map(mapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EvolucaoTratamentoResponse> listarPorPeriodo(LocalDate inicio, LocalDate fim) {
+        return repository.findByDataEvolucaoBetweenAndDeletadoFalse(inicio, fim).stream()
+                .map(mapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public EvolucaoTratamentoResponse atualizar(Long id, EvolucaoTratamentoRequest request) {
+        log.info("Atualizando evolução de tratamento {}", id);
+
+        EvolucaoTratamento evolucao = findById(id);
+        mapper.updateEntityFromRequest(request, evolucao);
+        evolucao = repository.save(evolucao);
+
+        log.info("Evolução de tratamento {} atualizada", id);
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
+        return mapper.toResponse(evolucao);
+    }
+
+    @Override
+<<<<<<< HEAD
     public EvolucaoTratamentoResponse atualizarParcial(Long id, EvolucaoTratamentoRequest request) {
         log.info("Atualização parcial da evolução ID: {}", id);
 
@@ -318,3 +409,22 @@ public class EvolucaoTratamentoServiceImpl implements EvolucaoTratamentoService 
         return evolucao.estaAtiva();
     }
 }
+=======
+    @Transactional
+    public void deletar(Long id) {
+        log.info("Deletando evolução de tratamento {}", id);
+
+        EvolucaoTratamento evolucao = findById(id);
+        evolucao.setDeletado(true);
+        repository.save(evolucao);
+
+        log.info("Evolução de tratamento {} deletada", id);
+    }
+
+    private EvolucaoTratamento findById(Long id) {
+        return repository.findById(id)
+                .filter(e -> !e.getDeletado())
+                .orElseThrow(() -> new ResourceNotFoundException("Evolução de tratamento não encontrada com id: " + id));
+    }
+}
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb

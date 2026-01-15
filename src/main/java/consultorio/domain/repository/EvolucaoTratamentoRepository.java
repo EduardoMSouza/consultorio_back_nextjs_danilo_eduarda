@@ -1,5 +1,6 @@
 package consultorio.domain.repository;
 
+<<<<<<< HEAD
 import consultorio.domain.entity.tratamento.EvolucaoTratamento;
 import consultorio.domain.entity.tratamento.enums.TipoEvolucao;
 import org.springframework.data.domain.Page;
@@ -8,12 +9,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+=======
+import consultorio.domain.entity.EvolucaoTratamento;
+import org.springframework.data.jpa.repository.JpaRepository;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @Repository
+<<<<<<< HEAD
 public interface EvolucaoTratamentoRepository extends JpaRepository<EvolucaoTratamento, Long>, JpaSpecificationExecutor<EvolucaoTratamento> {
 
     List<EvolucaoTratamento> findByPacienteId(Long pacienteId);
@@ -110,3 +116,15 @@ public interface EvolucaoTratamentoRepository extends JpaRepository<EvolucaoTrat
     @Query("SELECT e FROM EvolucaoTratamento e WHERE e.paciente.id = :pacienteId AND (e.descricao LIKE %:termo% OR e.observacoes LIKE %:termo%)")
     List<EvolucaoTratamento> findByPacienteIdAndTermo(@Param("pacienteId") Long pacienteId, @Param("termo") String termo);
 }
+=======
+public interface EvolucaoTratamentoRepository extends JpaRepository<EvolucaoTratamento, Long> {
+
+    List<EvolucaoTratamento> findByPacienteIdAndDeletadoFalseOrderByDataEvolucaoDesc(Long pacienteId);
+
+    List<EvolucaoTratamento> findByDentistaIdAndDeletadoFalseOrderByDataEvolucaoDesc(Long dentistaId);
+
+    List<EvolucaoTratamento> findByPacienteIdAndDentistaIdAndDeletadoFalseOrderByDataEvolucaoDesc(Long pacienteId, Long dentistaId);
+
+    List<EvolucaoTratamento> findByDataEvolucaoBetweenAndDeletadoFalse(LocalDate inicio, LocalDate fim);
+}
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb

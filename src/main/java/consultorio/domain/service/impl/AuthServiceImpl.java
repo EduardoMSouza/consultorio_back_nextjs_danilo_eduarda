@@ -1,5 +1,6 @@
 package consultorio.domain.service.impl;
 
+<<<<<<< HEAD
 import consultorio.api.dto.request.auth.ChangePasswordRequest;
 import consultorio.api.dto.request.auth.LoginRequest;
 import consultorio.api.dto.request.auth.RefreshTokenRequest;
@@ -11,6 +12,19 @@ import consultorio.domain.entity.pessoa.User;
 import consultorio.domain.repository.UserRepository;
 import consultorio.domain.service.AuthService;
 import consultorio.infrastructure.security.jwt.JwtService;
+=======
+import consultorio.api.dto.request.ChangePasswordRequest;
+import consultorio.api.dto.request.LoginRequest;
+import consultorio.api.dto.request.RefreshTokenRequest;
+import consultorio.api.dto.response.LoginResponse;
+import consultorio.api.dto.response.UserResponse;
+import consultorio.api.exception.BusinessException;
+import consultorio.api.mapper.UserMapper;
+import consultorio.domain.entity.User;
+import consultorio.domain.repository.UserRepository;
+import consultorio.domain.service.AuthService;
+import consultorio.infrastructure.security.JwtService;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

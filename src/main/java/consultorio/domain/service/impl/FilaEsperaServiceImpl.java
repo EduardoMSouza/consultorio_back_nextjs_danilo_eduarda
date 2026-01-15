@@ -1,5 +1,6 @@
 package consultorio.domain.service.impl;
 
+<<<<<<< HEAD
 import consultorio.api.exception.BusinessException;
 import consultorio.api.exception.ResourceNotFoundException;
 import consultorio.domain.entity.agendamento.Agendamento;
@@ -8,6 +9,19 @@ import consultorio.domain.entity.pessoa.Dentista;
 import consultorio.domain.entity.agendamento.FilaEspera;
 import consultorio.domain.entity.agendamento.FilaEspera.StatusFila;
 import consultorio.domain.entity.pessoa.Paciente;
+=======
+import consultorio.api.dto.request.FilaEsperaRequest;
+import consultorio.api.dto.response.FilaEsperaResponse;
+import consultorio.api.exception.BusinessException;
+import consultorio.api.exception.ResourceNotFoundException;
+import consultorio.api.mapper.FilaEsperaMapper;
+import consultorio.domain.entity.Agendamento;
+import consultorio.domain.entity.Agendamento.TipoProcedimento;
+import consultorio.domain.entity.Dentista;
+import consultorio.domain.entity.FilaEspera;
+import consultorio.domain.entity.FilaEspera.StatusFila;
+import consultorio.domain.entity.Paciente;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import consultorio.domain.repository.AgendamentoRepository;
 import consultorio.domain.repository.DentistaRepository;
 import consultorio.domain.repository.FilaEsperaRepository;

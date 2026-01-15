@@ -1,9 +1,16 @@
 package consultorio.api.controller;
 
+<<<<<<< HEAD
 import consultorio.api.dto.request.pessoa.UserRequest;
 import consultorio.api.dto.response.pessoa.UserResponse;
 import consultorio.domain.entity.pessoa.User;
 import consultorio.domain.entity.pessoa.User.Role;
+=======
+import consultorio.api.dto.request.UserRequest;
+import consultorio.api.dto.response.UserResponse;
+import consultorio.domain.entity.User;
+import consultorio.domain.entity.User.Role;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import consultorio.domain.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

@@ -1,7 +1,14 @@
 package consultorio.domain.service;
 
+<<<<<<< HEAD
 import consultorio.api.dto.request.agendamento.AgendamentoRequest;
 import consultorio.domain.entity.agendamento.Agendamento.StatusAgendamento;
+=======
+import consultorio.api.dto.request.AgendamentoRequest;
+import consultorio.api.dto.response.AgendamentoResponse;
+import consultorio.api.dto.response.AgendamentoResumoResponse;
+import consultorio.domain.entity.Agendamento.StatusAgendamento;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

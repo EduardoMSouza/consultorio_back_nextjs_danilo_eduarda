@@ -1,8 +1,14 @@
 package consultorio.domain.service;
 
+<<<<<<< HEAD
 import consultorio.api.dto.request.pessoa.UserRequest;
 import consultorio.api.dto.response.pessoa.UserResponse;
 import consultorio.domain.entity.pessoa.User;
+=======
+import consultorio.api.dto.request.UserRequest;
+import consultorio.api.dto.response.UserResponse;
+import consultorio.domain.entity.User;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

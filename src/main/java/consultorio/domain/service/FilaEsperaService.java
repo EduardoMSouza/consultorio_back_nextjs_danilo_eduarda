@@ -1,8 +1,16 @@
 package consultorio.domain.service;
 
+<<<<<<< HEAD
 import consultorio.domain.entity.agendamento.Agendamento;
 import consultorio.domain.entity.agendamento.Agendamento.TipoProcedimento;
 import consultorio.domain.entity.agendamento.FilaEspera.StatusFila;
+=======
+import consultorio.api.dto.request.FilaEsperaRequest;
+import consultorio.api.dto.response.FilaEsperaResponse;
+import consultorio.domain.entity.Agendamento;
+import consultorio.domain.entity.Agendamento.TipoProcedimento;
+import consultorio.domain.entity.FilaEspera.StatusFila;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

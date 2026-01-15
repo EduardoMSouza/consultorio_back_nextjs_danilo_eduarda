@@ -1,6 +1,10 @@
 package consultorio.domain.repository;
 
+<<<<<<< HEAD
 import consultorio.domain.entity.pessoa.User;
+=======
+import consultorio.domain.entity.User;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,5 +1,6 @@
 package consultorio.domain.service.impl;
 
+<<<<<<< HEAD
 import consultorio.api.dto.request.pessoa.PacienteRequest;
 import consultorio.api.dto.response.pessoa.PacienteResponse;
 import consultorio.api.dto.response.pessoa.PacienteResumoResponse;
@@ -7,6 +8,15 @@ import consultorio.api.exception.BusinessException;
 import consultorio.api.exception.ResourceNotFoundException;
 import consultorio.api.mapper.pessoa.PacienteMapper;
 import consultorio.domain.entity.pessoa.Paciente;
+=======
+import consultorio.api.dto.request.PacienteRequest;
+import consultorio.api.dto.response.PacienteResponse;
+import consultorio.api.dto.response.PacienteResumoResponse;
+import consultorio.api.exception.BusinessException;
+import consultorio.api.exception.ResourceNotFoundException;
+import consultorio.api.mapper.PacienteMapper;
+import consultorio.domain.entity.Paciente;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import consultorio.domain.repository.PacienteRepository;
 import consultorio.domain.service.PacienteService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +29,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+<<<<<<< HEAD
+=======
+import java.time.LocalDateTime;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import java.time.Year;
 import java.util.HashMap;
 import java.util.LinkedHashMap;

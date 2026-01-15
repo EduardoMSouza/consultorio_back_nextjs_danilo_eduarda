@@ -1,5 +1,6 @@
 package consultorio.domain.service;
 
+<<<<<<< HEAD
 import consultorio.api.dto.request.tratamento.PlanoDentalRequest;
 import consultorio.api.dto.response.tratamento.PlanoDentalResponse;
 import consultorio.domain.entity.tratamento.enums.StatusPlano;
@@ -8,10 +9,16 @@ import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+=======
+import consultorio.api.dto.request.PlanoDentalRequest;
+import consultorio.api.dto.response.PlanoDentalResponse;
+
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import java.util.List;
 
 public interface PlanoDentalService {
 
+<<<<<<< HEAD
     PlanoDentalResponse create(PlanoDentalRequest request);
 
     PlanoDentalResponse findById(Long id);
@@ -64,3 +71,23 @@ public interface PlanoDentalService {
 
     List<PlanoDentalResponse> findByPacienteIdAndDentistaIdAndStatus(Long pacienteId, Long dentistaId, StatusPlano status);
 }
+=======
+    PlanoDentalResponse criar(PlanoDentalRequest request);
+
+    PlanoDentalResponse buscarPorId(Long id);
+
+    List<PlanoDentalResponse> listarTodos();
+
+    List<PlanoDentalResponse> listarPorPaciente(Long pacienteId);
+
+    List<PlanoDentalResponse> listarPorDentista(Long dentistaId);
+
+    List<PlanoDentalResponse> listarPorPacienteEDentista(Long pacienteId, Long dentistaId);
+
+    List<PlanoDentalResponse> listarPorStatus(String status);
+
+    PlanoDentalResponse atualizar(Long id, PlanoDentalRequest request);
+
+    void deletar(Long id);
+}
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb

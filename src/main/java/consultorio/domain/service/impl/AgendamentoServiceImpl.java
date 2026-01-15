@@ -1,5 +1,6 @@
 package consultorio.domain.service.impl;
 
+<<<<<<< HEAD
 
 import consultorio.api.dto.response.agendamento.AgendamentoResponse;
 import consultorio.api.exception.BusinessException;
@@ -10,6 +11,20 @@ import consultorio.domain.entity.agendamento.AgendamentoHistorico;
 import consultorio.domain.entity.agendamento.AgendamentoHistorico.TipoAcao;
 import consultorio.domain.entity.pessoa.Dentista;
 import consultorio.domain.entity.pessoa.Paciente;
+=======
+import consultorio.api.dto.request.AgendamentoRequest;
+import consultorio.api.dto.response.AgendamentoResponse;
+import consultorio.api.dto.response.AgendamentoResumoResponse;
+import consultorio.api.exception.BusinessException;
+import consultorio.api.exception.ResourceNotFoundException;
+import consultorio.api.mapper.AgendamentoMapper;
+import consultorio.domain.entity.Agendamento;
+import consultorio.domain.entity.Agendamento.StatusAgendamento;
+import consultorio.domain.entity.AgendamentoHistorico;
+import consultorio.domain.entity.AgendamentoHistorico.TipoAcao;
+import consultorio.domain.entity.Dentista;
+import consultorio.domain.entity.Paciente;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import consultorio.domain.repository.AgendamentoHistoricoRepository;
 import consultorio.domain.repository.AgendamentoRepository;
 import consultorio.domain.repository.DentistaRepository;
@@ -68,7 +83,11 @@ public class AgendamentoServiceImpl implements AgendamentoService {
         registrarHistorico(agendamento.getId(), TipoAcao.CRIACAO, null, StatusAgendamento.AGENDADO, "Agendamento criado");
 
         log.info("Agendamento criado: id={}, dentista={}, paciente={}, data={}",
+<<<<<<< HEAD
                 agendamento.getId(), dentista.getNome(), paciente.getNome(), request.getDataConsulta());
+=======
+                agendamento.getId(), dentista.getNome(), paciente.getDadosBasicos().getNome(), request.getDataConsulta());
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 
         return mapper.toResponse(agendamento);
     }
@@ -312,7 +331,11 @@ public class AgendamentoServiceImpl implements AgendamentoService {
         // Aqui implementaria envio real (email, SMS, push)
         for (Agendamento a : agendamentos) {
             log.info("Lembrete enviado para: {} - Consulta em {} às {}",
+<<<<<<< HEAD
                     a.getPaciente().getNome(), a.getDataConsulta(), a.getHoraInicio());
+=======
+                    a.getPaciente().getDadosBasicos().getNome(), a.getDataConsulta(), a.getHoraInicio());
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
         }
 
         int atualizados = repository.marcarLembretesEnviados(ids, LocalDateTime.now());

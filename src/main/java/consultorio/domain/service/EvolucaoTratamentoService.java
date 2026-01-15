@@ -1,7 +1,12 @@
 package consultorio.domain.service;
 
+<<<<<<< HEAD
 import consultorio.api.dto.request.tratamento.EvolucaoTratamentoRequest;
 import consultorio.api.dto.response.tratamento.EvolucaoTratamentoResponse;
+=======
+import consultorio.api.dto.request.EvolucaoTratamentoRequest;
+import consultorio.api.dto.response.EvolucaoTratamentoResponse;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 
 import java.time.LocalDate;
 import java.util.List;
@@ -18,6 +23,7 @@ public interface EvolucaoTratamentoService {
 
     List<EvolucaoTratamentoResponse> listarPorDentista(Long dentistaId);
 
+<<<<<<< HEAD
     List<EvolucaoTratamentoResponse> listarPorPlanoDental(Long planoDentalId);
 
     List<EvolucaoTratamentoResponse> listarPorPeriodo(LocalDate dataInicio, LocalDate dataFim);
@@ -52,3 +58,13 @@ public interface EvolucaoTratamentoService {
 
     boolean verificarSeAtiva(Long id);
 }
+=======
+    List<EvolucaoTratamentoResponse> listarPorPacienteEDentista(Long pacienteId, Long dentistaId);
+
+    List<EvolucaoTratamentoResponse> listarPorPeriodo(LocalDate inicio, LocalDate fim);
+
+    EvolucaoTratamentoResponse atualizar(Long id, EvolucaoTratamentoRequest request);
+
+    void deletar(Long id);
+}
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb

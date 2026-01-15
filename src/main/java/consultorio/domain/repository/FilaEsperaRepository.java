@@ -1,8 +1,14 @@
 package consultorio.domain.repository;
 
+<<<<<<< HEAD
 import consultorio.domain.entity.agendamento.FilaEspera;
 import consultorio.domain.entity.agendamento.FilaEspera.StatusFila;
 import consultorio.domain.entity.agendamento.enums.TipoProcedimento;
+=======
+import consultorio.domain.entity.Agendamento.TipoProcedimento;
+import consultorio.domain.entity.FilaEspera;
+import consultorio.domain.entity.FilaEspera.StatusFila;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

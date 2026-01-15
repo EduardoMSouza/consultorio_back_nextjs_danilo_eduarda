@@ -1,7 +1,14 @@
 package consultorio.domain.service.impl;
 
+<<<<<<< HEAD
 import consultorio.domain.entity.agendamento.AgendamentoHistorico;
 import consultorio.domain.entity.agendamento.AgendamentoHistorico.TipoAcao;
+=======
+import consultorio.api.dto.response.AgendamentoHistoricoResponse;
+import consultorio.api.mapper.AgendamentoHistoricoMapper;
+import consultorio.domain.entity.AgendamentoHistorico;
+import consultorio.domain.entity.AgendamentoHistorico.TipoAcao;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import consultorio.domain.repository.AgendamentoHistoricoRepository;
 import consultorio.domain.service.AgendamentoHistoricoService;
 import lombok.RequiredArgsConstructor;

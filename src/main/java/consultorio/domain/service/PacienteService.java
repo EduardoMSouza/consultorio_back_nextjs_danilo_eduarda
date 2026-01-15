@@ -1,11 +1,21 @@
 package consultorio.domain.service;
 
+<<<<<<< HEAD
 import consultorio.api.dto.request.pessoa.PacienteRequest;
 import consultorio.api.dto.response.pessoa.PacienteResponse;
 import consultorio.api.dto.response.pessoa.PacienteResumoResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+=======
+import consultorio.api.dto.request.PacienteRequest;
+import consultorio.api.dto.response.PacienteResponse;
+import consultorio.api.dto.response.PacienteResumoResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.time.LocalDate;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import java.util.List;
 import java.util.Map;
 

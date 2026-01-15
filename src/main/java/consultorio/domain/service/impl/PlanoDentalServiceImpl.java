@@ -1,5 +1,6 @@
 package consultorio.domain.service.impl;
 
+<<<<<<< HEAD
 import consultorio.api.dto.request.tratamento.PlanoDentalRequest;
 import consultorio.api.dto.response.tratamento.PlanoDentalResponse;
 import consultorio.api.exception.BusinessException;
@@ -12,10 +13,18 @@ import consultorio.domain.entity.tratamento.PlanoDental;
 import consultorio.domain.entity.tratamento.enums.StatusPlano;
 import consultorio.domain.repository.DentistaRepository;
 import consultorio.domain.repository.PacienteRepository;
+=======
+import consultorio.api.dto.request.PlanoDentalRequest;
+import consultorio.api.dto.response.PlanoDentalResponse;
+import consultorio.api.exception.ResourceNotFoundException;
+import consultorio.api.mapper.PlanoDentalMapper;
+import consultorio.domain.entity.PlanoDental;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import consultorio.domain.repository.PlanoDentalRepository;
 import consultorio.domain.service.PlanoDentalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+<<<<<<< HEAD
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,11 +32,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+=======
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+<<<<<<< HEAD
 @Transactional
 public class PlanoDentalServiceImpl implements PlanoDentalService {
 
@@ -54,18 +69,42 @@ public class PlanoDentalServiceImpl implements PlanoDentalService {
 
         log.info("Plano dental criado: ID {}", plano.getId());
         return planoDentalMapper.toResponse(plano);
+=======
+public class PlanoDentalServiceImpl implements PlanoDentalService {
+
+    private final PlanoDentalRepository repository;
+    private final PlanoDentalMapper mapper;
+
+    @Override
+    @Transactional
+    public PlanoDentalResponse criar(PlanoDentalRequest request) {
+        log.info("Criando plano dental");
+
+        PlanoDental plano = mapper.toEntity(request);
+        plano = repository.save(plano);
+
+        log.info("Plano dental {} criado", plano.getId());
+        return mapper.toResponse(plano);
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
     }
 
     @Override
     @Transactional(readOnly = true)
+<<<<<<< HEAD
     public PlanoDentalResponse findById(Long id) {
         PlanoDental plano = planoDentalRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Plano dental não encontrado"));
         return planoDentalMapper.toResponse(plano);
+=======
+    public PlanoDentalResponse buscarPorId(Long id) {
+        PlanoDental plano = findById(id);
+        return mapper.toResponse(plano);
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
     }
 
     @Override
     @Transactional(readOnly = true)
+<<<<<<< HEAD
     public Page<PlanoDentalResponse> findAll(Pageable pageable) {
         return planoDentalRepository.findAll(pageable)
                 .map(planoDentalMapper::toResponse);
@@ -206,33 +245,62 @@ public class PlanoDentalServiceImpl implements PlanoDentalService {
         plano = planoDentalRepository.save(plano);
         log.info("Valor do plano dental atualizado: ID {}, Novo valor: {}", plano.getId(), valor);
         return planoDentalMapper.toResponse(plano);
+=======
+    public List<PlanoDentalResponse> listarTodos() {
+        return repository.findAll().stream()
+                .filter(p -> !p.getDeletado())
+                .map(mapper::toResponse)
+                .toList();
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
     }
 
     @Override
     @Transactional(readOnly = true)
+<<<<<<< HEAD
     public List<PlanoDentalResponse> findByPacienteId(Long pacienteId) {
         return planoDentalMapper.toResponseList(
                 planoDentalRepository.findByPacienteIdAndAtivoTrue(pacienteId)
         );
+=======
+    public List<PlanoDentalResponse> listarPorPaciente(Long pacienteId) {
+        return repository.findByPacienteIdAndDeletadoFalse(pacienteId).stream()
+                .map(mapper::toResponse)
+                .toList();
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
     }
 
     @Override
     @Transactional(readOnly = true)
+<<<<<<< HEAD
     public Page<PlanoDentalResponse> findByPacienteId(Long pacienteId, Pageable pageable) {
         return planoDentalRepository.findByPacienteId(pacienteId, pageable)
                 .map(planoDentalMapper::toResponse);
+=======
+    public List<PlanoDentalResponse> listarPorDentista(Long dentistaId) {
+        return repository.findByDentistaIdAndDeletadoFalse(dentistaId).stream()
+                .map(mapper::toResponse)
+                .toList();
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
     }
 
     @Override
     @Transactional(readOnly = true)
+<<<<<<< HEAD
     public List<PlanoDentalResponse> findByDentistaId(Long dentistaId) {
         return planoDentalMapper.toResponseList(
                 planoDentalRepository.findByDentistaIdAndAtivoTrue(dentistaId)
         );
+=======
+    public List<PlanoDentalResponse> listarPorPacienteEDentista(Long pacienteId, Long dentistaId) {
+        return repository.findByPacienteAndDentista(pacienteId, dentistaId).stream()
+                .map(mapper::toResponse)
+                .toList();
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
     }
 
     @Override
     @Transactional(readOnly = true)
+<<<<<<< HEAD
     public Page<PlanoDentalResponse> findByDentistaId(Long dentistaId, Pageable pageable) {
         return planoDentalRepository.findByDentistaId(dentistaId, pageable)
                 .map(planoDentalMapper::toResponse);
@@ -333,3 +401,43 @@ public class PlanoDentalServiceImpl implements PlanoDentalService {
         );
     }
 }
+=======
+    public List<PlanoDentalResponse> listarPorStatus(String status) {
+        PlanoDental.StatusPlano statusEnum = PlanoDental.StatusPlano.valueOf(status.toUpperCase());
+        return repository.findByStatusAndDeletadoFalse(statusEnum).stream()
+                .map(mapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public PlanoDentalResponse atualizar(Long id, PlanoDentalRequest request) {
+        log.info("Atualizando plano dental {}", id);
+
+        PlanoDental plano = findById(id);
+        mapper.updateEntityFromRequest(request, plano);
+        plano = repository.save(plano);
+
+        log.info("Plano dental {} atualizado", id);
+        return mapper.toResponse(plano);
+    }
+
+    @Override
+    @Transactional
+    public void deletar(Long id) {
+        log.info("Deletando plano dental {}", id);
+
+        PlanoDental plano = findById(id);
+        plano.setDeletado(true);
+        repository.save(plano);
+
+        log.info("Plano dental {} deletado", id);
+    }
+
+    private PlanoDental findById(Long id) {
+        return repository.findById(id)
+                .filter(p -> !p.getDeletado())
+                .orElseThrow(() -> new ResourceNotFoundException("Plano dental não encontrado com id: " + id));
+    }
+}
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb

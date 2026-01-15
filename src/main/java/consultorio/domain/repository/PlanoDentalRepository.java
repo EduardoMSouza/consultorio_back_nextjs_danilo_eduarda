@@ -1,5 +1,6 @@
 package consultorio.domain.repository;
 
+<<<<<<< HEAD
 import consultorio.domain.entity.tratamento.PlanoDental;
 import consultorio.domain.entity.tratamento.enums.StatusPlano;
 import org.springframework.data.domain.Page;
@@ -7,10 +8,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
+=======
+import consultorio.domain.entity.PlanoDental;
+import org.springframework.data.jpa.repository.JpaRepository;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+<<<<<<< HEAD
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -132,3 +138,19 @@ public interface PlanoDentalRepository extends JpaRepository<PlanoDental, Long>,
                                                              @Param("dentistaId") Long dentistaId,
                                                              @Param("status") StatusPlano status);
 }
+=======
+import java.util.List;
+
+@Repository
+public interface PlanoDentalRepository extends JpaRepository<PlanoDental, Long> {
+
+    List<PlanoDental> findByPacienteIdAndDeletadoFalse(Long pacienteId);
+
+    List<PlanoDental> findByDentistaIdAndDeletadoFalse(Long dentistaId);
+
+    @Query("SELECT p FROM PlanoDental p WHERE p.pacienteId = :pacienteId AND p.dentistaId = :dentistaId AND p.deletado = false")
+    List<PlanoDental> findByPacienteAndDentista(@Param("pacienteId") Long pacienteId, @Param("dentistaId") Long dentistaId);
+
+    List<PlanoDental> findByStatusAndDeletadoFalse(PlanoDental.StatusPlano status);
+}
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb

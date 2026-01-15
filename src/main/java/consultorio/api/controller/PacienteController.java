@@ -1,8 +1,14 @@
 package consultorio.api.controller;
 
+<<<<<<< HEAD
 import consultorio.api.dto.request.pessoa.PacienteRequest;
 import consultorio.api.dto.response.pessoa.PacienteResponse;
 import consultorio.api.dto.response.pessoa.PacienteResumoResponse;
+=======
+import consultorio.api.dto.request.PacienteRequest;
+import consultorio.api.dto.response.PacienteResponse;
+import consultorio.api.dto.response.PacienteResumoResponse;
+>>>>>>> aac8f9c1ddb79fb2c76c9249edd60166d1195cfb
 import consultorio.domain.service.PacienteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
