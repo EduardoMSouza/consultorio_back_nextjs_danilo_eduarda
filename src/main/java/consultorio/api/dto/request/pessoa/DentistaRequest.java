@@ -20,7 +20,6 @@ public class DentistaRequest {
     private String nome;
 
     @NotBlank(message = "CRO é obrigatório")
-    @Pattern(regexp = "[A-Za-z]{2}\\d{4,8}", message = "CRO inválido")
     private String cro;
 
     @NotBlank(message = "Especialidade é obrigatória")

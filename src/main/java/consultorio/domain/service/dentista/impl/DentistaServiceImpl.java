@@ -2,6 +2,7 @@ package consultorio.domain.service.dentista.impl;
 
 import consultorio.api.dto.request.pessoa.DentistaRequest;
 import consultorio.api.dto.response.pessoa.DentistaResponse;
+import consultorio.api.dto.response.pessoa.DentistaResumoResponse;
 import consultorio.api.exception.ResourceNotFoundException;
 import consultorio.api.exception.BusinessException;
 import consultorio.api.mapper.pessoa.DentistaMapper;
@@ -96,6 +97,11 @@ public class DentistaServiceImpl implements DentistaService {
     public Page<DentistaResponse> listarAtivos(Pageable pageable) {
         log.debug("Listando dentistas ativos");
         return repository.findByAtivoTrue(pageable).map(mapper::toResponse);
+    }
+
+    public Page<DentistaResumoResponse> listarTodosResumo(Pageable pageable) {
+        log.debug("Listando todos dentistas (resumo)");
+        return repository.findAll(pageable).map(mapper::toResumoResponse);
     }
 
     @Override
