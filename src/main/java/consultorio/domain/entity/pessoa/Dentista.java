@@ -95,29 +95,7 @@ public class Dentista {
         return Boolean.TRUE.equals(ativo);
     }
 
-    /**
-     * Define o CRO do dentista com validação básica do formato.
-     * O CRO será convertido para letras maiúsculas.
-     *
-     * @param cro o CRO a ser definido
-     * @throws IllegalArgumentException se o CRO for nulo ou não seguir o padrão básico
-     */
-    public void setCro(String cro) {
-        if (cro == null || cro.trim().isEmpty()) {
-            throw new IllegalArgumentException("CRO não pode ser nulo ou vazio");
-        }
 
-        String croFormatado = cro.trim().toUpperCase();
-
-        // Validação básica do formato: 2 letras + números
-        if (!croFormatado.matches("[A-Z]{2}\\d{4,8}")) {
-            throw new IllegalArgumentException(
-                    "CRO deve seguir o padrão: 2 letras + 4 a 8 números. Exemplo: SP12345"
-            );
-        }
-
-        this.cro = croFormatado;
-    }
 
     /**
      * Define o email do dentista, garantindo que seja em letras minúsculas.

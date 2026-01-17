@@ -2,6 +2,7 @@ package consultorio.domain.service.dentista;
 
 import consultorio.api.dto.request.pessoa.DentistaRequest;
 import consultorio.api.dto.response.pessoa.DentistaResponse;
+import consultorio.api.dto.response.pessoa.DentistaResumoResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -19,6 +20,7 @@ public interface DentistaService {
     Page<DentistaResponse> listarAtivos(Pageable pageable);
     Page<DentistaResponse> buscarPorNome(String nome, Pageable pageable);
     Page<DentistaResponse> buscarPorTermo(String termo, Pageable pageable);
+    Page<DentistaResumoResponse> listarTodosResumo(Pageable pageable);
 
     // Status
     void ativar(Long id);
