@@ -1,16 +1,20 @@
 package consultorio.api.controller.tratamento;
 
-import consultorio.api.dto.request.tratamento.EvolucaoTratamentoRequest;
+import consultorio.api.dto.request.tratamento.CriarEvolucaoTratamentoRequest;
+import consultorio.api.dto.request.tratamento.AtualizarEvolucaoTratamentoRequest;
 import consultorio.api.dto.response.tratamento.EvolucaoTratamentoResponse;
-
+import consultorio.api.dto.response.tratamento.EvolucaoTratamentoDetalheResponse;
+import consultorio.api.dto.response.tratamento.ResumoEvolucaoResponse;
+import consultorio.api.dto.response.tratamento.PaginacaoResponse;
 import consultorio.domain.service.evolucao_tratamento.EvolucaoTratamentoService;
+import consultorio.infrastructure.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,234 +26,161 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/evolucoes-tratamento")
 @RequiredArgsConstructor
-@Tag(name = "Evoluções de Tratamento", description = "API para gerenciamento de evoluções de tratamento odontológico")
+@Tag(name = "Evolução de Tratamento", description = "Endpoints para gerenciamento de evoluções de tratamento odontológico")
 public class EvolucaoTratamentoController {
 
-    private final EvolucaoTratamentoService evolucaoTratamentoService;
+    private final EvolucaoTratamentoService evolucaoService;
 
-    @Operation(summary = "Criar uma nova evolução de tratamento")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Evolução criada com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos fornecidos"),
-            @ApiResponse(responseCode = "404", description = "Recursos relacionados não encontrados")
-    })
-    @PostMapping
-    public ResponseEntity<EvolucaoTratamentoResponse> criar(
-            @Valid @RequestBody EvolucaoTratamentoRequest request) {
-        EvolucaoTratamentoResponse response = evolucaoTratamentoService.criar(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @Operation(summary = "Buscar evolução por ID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Evolução encontrada"),
-            @ApiResponse(responseCode = "404", description = "Evolução não encontrada")
-    })
-    @GetMapping("/{id}")
-    public ResponseEntity<EvolucaoTratamentoResponse> buscarPorId(
-            @Parameter(description = "ID da evolução") @PathVariable Long id) {
-        EvolucaoTratamentoResponse response = evolucaoTratamentoService.buscarPorId(id);
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "Listar todas as evoluções ativas")
     @GetMapping
-    public ResponseEntity<List<EvolucaoTratamentoResponse>> listarTodos() {
-        List<EvolucaoTratamentoResponse> response = evolucaoTratamentoService.listarTodos();
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Listar todas as evoluções", description = "Retorna lista de todas as evoluções ordenadas por data decrescente")
+    public ResponseEntity<ApiResponse<List<EvolucaoTratamentoResponse>>> listarTodos() {
+        List<EvolucaoTratamentoResponse> evolucoes = evolucaoService.listarTodos();
+        return ResponseEntity.ok(ApiResponse.success(evolucoes));
     }
 
-    @Operation(summary = "Atualizar evolução completa")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Evolução atualizada com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos fornecidos"),
-            @ApiResponse(responseCode = "404", description = "Evolução não encontrada")
-    })
+    @GetMapping("/paginado")
+    @Operation(summary = "Listar evoluções paginadas", description = "Retorna lista paginada de evoluções")
+    public ResponseEntity<ApiResponse<PaginacaoResponse<EvolucaoTratamentoResponse>>> listarPaginado(
+            @PageableDefault(size = 20) @Parameter(description = "Parâmetros de paginação") Pageable pageable) {
+        PaginacaoResponse<EvolucaoTratamentoResponse> response = evolucaoService.listarPaginado(pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Buscar evolução por ID", description = "Retorna detalhes completos de uma evolução específica")
+    public ResponseEntity<ApiResponse<EvolucaoTratamentoDetalheResponse>> buscarPorId(
+            @PathVariable @Parameter(description = "ID da evolução") Long id) {
+        EvolucaoTratamentoDetalheResponse evolucao = evolucaoService.buscarPorId(id);
+        return ResponseEntity.ok(ApiResponse.success(evolucao));
+    }
+
+    @PostMapping
+    @Operation(summary = "Criar nova evolução", description = "Registra uma nova evolução de tratamento para um paciente")
+    public ResponseEntity<ApiResponse<EvolucaoTratamentoResponse>> criar(
+            @Valid @RequestBody @Parameter(description = "Dados da evolução a ser criada") CriarEvolucaoTratamentoRequest request) {
+        EvolucaoTratamentoResponse evolucao = evolucaoService.criar(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(evolucao));
+    }
+
     @PutMapping("/{id}")
-    public ResponseEntity<EvolucaoTratamentoResponse> atualizar(
-            @Parameter(description = "ID da evolução") @PathVariable Long id,
-            @Valid @RequestBody EvolucaoTratamentoRequest request) {
-        EvolucaoTratamentoResponse response = evolucaoTratamentoService.atualizar(id, request);
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Atualizar evolução", description = "Atualiza os dados de uma evolução existente")
+    public ResponseEntity<ApiResponse<EvolucaoTratamentoResponse>> atualizar(
+            @PathVariable @Parameter(description = "ID da evolução") Long id,
+            @Valid @RequestBody @Parameter(description = "Dados atualizados da evolução") AtualizarEvolucaoTratamentoRequest request) {
+        EvolucaoTratamentoResponse evolucao = evolucaoService.atualizar(id, request);
+        return ResponseEntity.ok(ApiResponse.success(evolucao));
     }
 
-    @Operation(summary = "Atualização parcial da evolução")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Evolução atualizada parcialmente"),
-            @ApiResponse(responseCode = "404", description = "Evolução não encontrada")
-    })
-    @PatchMapping("/{id}")
-    public ResponseEntity<EvolucaoTratamentoResponse> atualizarParcial(
-            @Parameter(description = "ID da evolução") @PathVariable Long id,
-            @RequestBody EvolucaoTratamentoRequest request) {
-        EvolucaoTratamentoResponse response = evolucaoTratamentoService.atualizarParcial(id, request);
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "Desativar evolução (soft delete)")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Evolução desativada com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Evolução não encontrada")
-    })
-    @DeleteMapping("/{id}/desativar")
-    public ResponseEntity<Void> desativar(
-            @Parameter(description = "ID da evolução") @PathVariable Long id) {
-        evolucaoTratamentoService.desativar(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "Ativar evolução previamente desativada")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Evolução ativada com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Evolução não encontrada")
-    })
-    @PatchMapping("/{id}/ativar")
-    public ResponseEntity<Void> ativar(
-            @Parameter(description = "ID da evolução") @PathVariable Long id) {
-        evolucaoTratamentoService.ativar(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "Excluir permanentemente uma evolução")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Evolução excluída permanentemente"),
-            @ApiResponse(responseCode = "404", description = "Evolução não encontrada")
-    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> excluir(
-            @Parameter(description = "ID da evolução") @PathVariable Long id) {
-        evolucaoTratamentoService.excluir(id);
+    @Operation(summary = "Excluir evolução", description = "Remove uma evolução do sistema (permitido apenas para evoluções recentes)")
+    public ResponseEntity<ApiResponse<Void>> excluir(
+            @PathVariable @Parameter(description = "ID da evolução a ser excluída") Long id) {
+        evolucaoService.excluir(id);
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Buscar evoluções por paciente")
     @GetMapping("/paciente/{pacienteId}")
-    public ResponseEntity<List<EvolucaoTratamentoResponse>> buscarPorPaciente(
-            @Parameter(description = "ID do paciente") @PathVariable Long pacienteId) {
-        List<EvolucaoTratamentoResponse> response = evolucaoTratamentoService.buscarPorPaciente(pacienteId);
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Buscar evoluções por paciente", description = "Retorna todas as evoluções de um paciente específico ordenadas por data decrescente")
+    public ResponseEntity<ApiResponse<List<EvolucaoTratamentoResponse>>> buscarPorPaciente(
+            @PathVariable @Parameter(description = "ID do paciente") Long pacienteId) {
+        List<EvolucaoTratamentoResponse> evolucoes = evolucaoService.buscarPorPaciente(pacienteId);
+        return ResponseEntity.ok(ApiResponse.success(evolucoes));
     }
 
-    @Operation(summary = "Buscar evoluções por dentista")
+    @GetMapping("/paciente/{pacienteId}/paginado")
+    @Operation(summary = "Buscar evoluções por paciente paginadas", description = "Retorna evoluções de um paciente com paginação")
+    public ResponseEntity<ApiResponse<PaginacaoResponse<EvolucaoTratamentoResponse>>> buscarPorPacientePaginado(
+            @PathVariable @Parameter(description = "ID do paciente") Long pacienteId,
+            @PageableDefault(size = 20) @Parameter(description = "Parâmetros de paginação") Pageable pageable) {
+        PaginacaoResponse<EvolucaoTratamentoResponse> response = evolucaoService.buscarPorPacientePaginado(pacienteId, pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/dentista/{dentistaId}")
-    public ResponseEntity<List<EvolucaoTratamentoResponse>> buscarPorDentista(
-            @Parameter(description = "ID do dentista") @PathVariable Long dentistaId) {
-        List<EvolucaoTratamentoResponse> response = evolucaoTratamentoService.buscarPorDentista(dentistaId);
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Buscar evoluções por dentista", description = "Retorna todas as evoluções registradas por um dentista específico")
+    public ResponseEntity<ApiResponse<List<EvolucaoTratamentoResponse>>> buscarPorDentista(
+            @PathVariable @Parameter(description = "ID do dentista") Long dentistaId) {
+        List<EvolucaoTratamentoResponse> evolucoes = evolucaoService.buscarPorDentista(dentistaId);
+        return ResponseEntity.ok(ApiResponse.success(evolucoes));
     }
 
-    @Operation(summary = "Buscar evoluções por data")
     @GetMapping("/data/{data}")
-    public ResponseEntity<List<EvolucaoTratamentoResponse>> buscarPorData(
-            @Parameter(description = "Data no formato yyyy-MM-dd")
-            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate data) {
-        List<EvolucaoTratamentoResponse> response = evolucaoTratamentoService.buscarPorData(data);
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Buscar evoluções por data", description = "Retorna todas as evoluções de uma data específica")
+    public ResponseEntity<ApiResponse<List<EvolucaoTratamentoResponse>>> buscarPorData(
+            @PathVariable @Parameter(description = "Data no formato ISO (yyyy-MM-dd)")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
+        List<EvolucaoTratamentoResponse> evolucoes = evolucaoService.buscarPorData(data);
+        return ResponseEntity.ok(ApiResponse.success(evolucoes));
     }
 
-    @Operation(summary = "Buscar evoluções por período")
     @GetMapping("/periodo")
-    public ResponseEntity<List<EvolucaoTratamentoResponse>> buscarPorPeriodo(
-            @Parameter(description = "Data inicial no formato yyyy-MM-dd")
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate inicio,
-            @Parameter(description = "Data final no formato yyyy-MM-dd")
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate fim) {
-        List<EvolucaoTratamentoResponse> response = evolucaoTratamentoService.buscarPorPeriodo(inicio, fim);
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Buscar evoluções por período", description = "Retorna evoluções dentro de um período específico")
+    public ResponseEntity<ApiResponse<List<EvolucaoTratamentoResponse>>> buscarPorPeriodo(
+            @RequestParam @Parameter(description = "Data inicial no formato ISO (yyyy-MM-dd)")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam @Parameter(description = "Data final no formato ISO (yyyy-MM-dd)")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim) {
+        List<EvolucaoTratamentoResponse> evolucoes = evolucaoService.buscarPorPeriodo(dataInicio, dataFim);
+        return ResponseEntity.ok(ApiResponse.success(evolucoes));
     }
 
-    @Operation(summary = "Buscar evoluções urgentes")
-    @GetMapping("/urgentes")
-    public ResponseEntity<List<EvolucaoTratamentoResponse>> buscarUrgentes() {
-        List<EvolucaoTratamentoResponse> response = evolucaoTratamentoService.buscarUrgentes();
-        return ResponseEntity.ok(response);
+    @GetMapping("/paciente/{pacienteId}/periodo")
+    @Operation(summary = "Buscar evoluções por paciente e período", description = "Retorna evoluções de um paciente específico dentro de um período")
+    public ResponseEntity<ApiResponse<List<EvolucaoTratamentoResponse>>> buscarPorPacienteEPeriodo(
+            @PathVariable @Parameter(description = "ID do paciente") Long pacienteId,
+            @RequestParam @Parameter(description = "Data inicial no formato ISO (yyyy-MM-dd)")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam @Parameter(description = "Data final no formato ISO (yyyy-MM-dd)")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim) {
+        List<EvolucaoTratamentoResponse> evolucoes = evolucaoService.buscarPorPacienteEPeriodo(pacienteId, dataInicio, dataFim);
+        return ResponseEntity.ok(ApiResponse.success(evolucoes));
     }
 
-    @Operation(summary = "Buscar evoluções com retorno necessário")
-    @GetMapping("/retorno-necessario")
-    public ResponseEntity<List<EvolucaoTratamentoResponse>> buscarComRetornoNecessario() {
-        List<EvolucaoTratamentoResponse> response = evolucaoTratamentoService.buscarComRetornoNecessario();
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "Buscar evoluções com retorno atrasado")
-    @GetMapping("/retornos-atrasados")
-    public ResponseEntity<List<EvolucaoTratamentoResponse>> buscarRetornosAtrasados() {
-        List<EvolucaoTratamentoResponse> response = evolucaoTratamentoService.buscarRetornosAtrasados();
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "Marcar evolução como urgente")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Evolução marcada como urgente"),
-            @ApiResponse(responseCode = "404", description = "Evolução não encontrada")
-    })
-    @PatchMapping("/{id}/urgente")
-    public ResponseEntity<EvolucaoTratamentoResponse> marcarComoUrgente(
-            @Parameter(description = "ID da evolução") @PathVariable Long id) {
-        EvolucaoTratamentoResponse response = evolucaoTratamentoService.marcarComoUrgente(id);
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "Agendar retorno para uma evolução")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Retorno agendado com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Evolução não encontrada")
-    })
-    @PostMapping("/{id}/agendar-retorno")
-    public ResponseEntity<EvolucaoTratamentoResponse> agendarRetorno(
-            @Parameter(description = "ID da evolução") @PathVariable Long id,
-            @Parameter(description = "Data do retorno no formato yyyy-MM-dd")
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate dataRetorno,
-            @Parameter(description = "Motivo do retorno") @RequestParam String motivo) {
-        EvolucaoTratamentoResponse response = evolucaoTratamentoService.agendarRetorno(id, dataRetorno, motivo);
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "Buscar evoluções com filtros combinados")
-    @GetMapping("/filtros")
-    public ResponseEntity<List<EvolucaoTratamentoResponse>> buscarComFiltros(
-            @Parameter(description = "ID do paciente") @RequestParam(required = false) Long pacienteId,
-            @Parameter(description = "ID do dentista") @RequestParam(required = false) Long dentistaId,
-            @Parameter(description = "ID do plano dental") @RequestParam(required = false) Long planoDentalId,
-            @Parameter(description = "Data inicial no formato yyyy-MM-dd")
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate dataInicio,
-            @Parameter(description = "Data final no formato yyyy-MM-dd")
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate dataFim,
-            @Parameter(description = "Tipo de evolução") @RequestParam(required = false) String tipoEvolucao,
-            @Parameter(description = "Filtrar por urgência") @RequestParam(required = false) Boolean urgente) {
-
-        List<EvolucaoTratamentoResponse> response = evolucaoTratamentoService.buscarComFiltros(
-                pacienteId, dentistaId, planoDentalId, dataInicio, dataFim, tipoEvolucao, urgente);
-
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(summary = "Contar evoluções de um paciente")
-    @GetMapping("/paciente/{pacienteId}/contagem")
-    public ResponseEntity<Long> contarPorPaciente(
-            @Parameter(description = "ID do paciente") @PathVariable Long pacienteId) {
-        Long contagem = evolucaoTratamentoService.contarPorPaciente(pacienteId);
-        return ResponseEntity.ok(contagem);
-    }
-
-    @Operation(summary = "Buscar última evolução de um paciente")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Última evolução encontrada"),
-            @ApiResponse(responseCode = "404", description = "Nenhuma evolução encontrada para o paciente")
-    })
     @GetMapping("/paciente/{pacienteId}/ultima")
-    public ResponseEntity<EvolucaoTratamentoResponse> buscarUltimaEvolucaoPorPaciente(
-            @Parameter(description = "ID do paciente") @PathVariable Long pacienteId) {
-        EvolucaoTratamentoResponse response = evolucaoTratamentoService.buscarUltimaEvolucaoPorPaciente(pacienteId);
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Buscar última evolução de um paciente", description = "Retorna a evolução mais recente de um paciente específico")
+    public ResponseEntity<ApiResponse<EvolucaoTratamentoDetalheResponse>> buscarUltimaEvolucaoPaciente(
+            @PathVariable @Parameter(description = "ID do paciente") Long pacienteId) {
+        EvolucaoTratamentoDetalheResponse evolucao = evolucaoService.buscarUltimaEvolucaoPaciente(pacienteId);
+        return ResponseEntity.ok(ApiResponse.success(evolucao));
     }
 
-    @Operation(summary = "Verificar se evolução existe")
-    @GetMapping("/{id}/existe")
-    public ResponseEntity<Boolean> existePorId(
-            @Parameter(description = "ID da evolução") @PathVariable Long id) {
-        boolean existe = evolucaoTratamentoService.existePorId(id);
-        return ResponseEntity.ok(existe);
+    @GetMapping("/hoje")
+    @Operation(summary = "Buscar evoluções do dia", description = "Retorna todas as evoluções registradas no dia atual")
+    public ResponseEntity<ApiResponse<List<ResumoEvolucaoResponse>>> buscarEvolucoesDoDia() {
+        List<ResumoEvolucaoResponse> evolucoes = evolucaoService.buscarEvolucoesDoDia();
+        return ResponseEntity.ok(ApiResponse.success(evolucoes));
+    }
+
+    @GetMapping("/buscar-texto")
+    @Operation(summary = "Buscar evoluções por texto", description = "Realiza busca textual no conteúdo das evoluções")
+    public ResponseEntity<ApiResponse<List<ResumoEvolucaoResponse>>> buscarPorTextoEvolucao(
+            @RequestParam @Parameter(description = "Texto a ser buscado nas evoluções") String texto) {
+        List<ResumoEvolucaoResponse> evolucoes = evolucaoService.buscarPorTextoEvolucao(texto);
+        return ResponseEntity.ok(ApiResponse.success(evolucoes));
+    }
+
+    @GetMapping("/paciente/{pacienteId}/contar")
+    @Operation(summary = "Contar evoluções por paciente", description = "Retorna a quantidade total de evoluções de um paciente")
+    public ResponseEntity<ApiResponse<Long>> contarEvolucoesPorPaciente(
+            @PathVariable @Parameter(description = "ID do paciente") Long pacienteId) {
+        Long quantidade = evolucaoService.contarEvolucoesPorPaciente(pacienteId);
+        return ResponseEntity.ok(ApiResponse.success(quantidade));
+    }
+
+    @GetMapping("/estatisticas/total")
+    @Operation(summary = "Contar total de evoluções", description = "Retorna a quantidade total de evoluções no sistema")
+    public ResponseEntity<ApiResponse<Long>> contarTotalEvolucoes() {
+        Long total = evolucaoService.contarTotalEvolucoes();
+        return ResponseEntity.ok(ApiResponse.success(total));
+    }
+
+    @GetMapping("/validar/data")
+    @Operation(summary = "Verificar se existe evolução na data", description = "Verifica se já existe evolução registrada para um paciente em uma data específica")
+    public ResponseEntity<ApiResponse<Boolean>> existeEvolucaoNaData(
+            @RequestParam @Parameter(description = "ID do paciente") Long pacienteId,
+            @RequestParam @Parameter(description = "Data a verificar no formato ISO (yyyy-MM-dd)")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
+        Boolean existe = evolucaoService.existeEvolucaoNaData(pacienteId, data);
+        return ResponseEntity.ok(ApiResponse.success(existe));
     }
 }

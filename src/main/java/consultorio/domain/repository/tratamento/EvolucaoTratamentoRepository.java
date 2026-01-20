@@ -1,6 +1,8 @@
 package consultorio.domain.repository.tratamento;
 
 import consultorio.domain.entity.tratamento.EvolucaoTratamento;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,69 +15,60 @@ import java.util.Optional;
 @Repository
 public interface EvolucaoTratamentoRepository extends JpaRepository<EvolucaoTratamento, Long> {
 
-    // Busca por paciente
-    List<EvolucaoTratamento> findByPacienteId(Long pacienteId);
+    // Buscar por paciente ordenado por data decrescente
+    List<EvolucaoTratamento> findByPacienteIdOrderByDataDesc(Long pacienteId);
 
-    // Busca por dentista
-    List<EvolucaoTratamento> findByDentistaId(Long dentistaId);
+    Page<EvolucaoTratamento> findByPacienteIdOrderByDataDesc(Long pacienteId, Pageable pageable);
 
-    // Busca por plano dental
-    List<EvolucaoTratamento> findByPlanoDentalId(Long planoDentalId);
+    // Buscar por dentista ordenado por data decrescente
+    List<EvolucaoTratamento> findByDentistaIdOrderByDataDesc(Long dentistaId);
 
-    // Busca por data
-    List<EvolucaoTratamento> findByDataEvolucao(LocalDate dataEvolucao);
+    Page<EvolucaoTratamento> findByDentistaIdOrderByDataDesc(Long dentistaId, Pageable pageable);
 
-    // Busca por período
-    List<EvolucaoTratamento> findByDataEvolucaoBetween(LocalDate inicio, LocalDate fim);
+    // Buscar por data específica ordenado por nome do paciente
+    @Query("SELECT e FROM EvolucaoTratamento e WHERE e.data = :data ORDER BY e.paciente.dadosBasicos.nome ASC")
+    List<EvolucaoTratamento> findByDataOrderByPacienteNomeAsc(@Param("data") LocalDate data);
 
-    // Busca por urgência
-    List<EvolucaoTratamento> findByUrgenteTrue();
+    // Buscar por período
+    @Query("SELECT e FROM EvolucaoTratamento e WHERE e.data BETWEEN :dataInicio AND :dataFim ORDER BY e.data DESC, e.paciente.dadosBasicos.nome ASC")
+    List<EvolucaoTratamento> findByPeriodo(@Param("dataInicio") LocalDate dataInicio,
+                                           @Param("dataFim") LocalDate dataFim);
 
-    // Busca por necessidade de retorno
-    List<EvolucaoTratamento> findByRetornoNecessarioTrue();
+    // Buscar por paciente e período
+    @Query("SELECT e FROM EvolucaoTratamento e WHERE e.paciente.id = :pacienteId AND e.data BETWEEN :dataInicio AND :dataFim ORDER BY e.data DESC")
+    List<EvolucaoTratamento> findByPacienteAndPeriodo(@Param("pacienteId") Long pacienteId,
+                                                      @Param("dataInicio") LocalDate dataInicio,
+                                                      @Param("dataFim") LocalDate dataFim);
 
-    // Busca por tipo de evolução
-    List<EvolucaoTratamento> findByTipoEvolucao(String tipoEvolucao);
+    // Buscar última evolução de um paciente
+    @Query("SELECT e FROM EvolucaoTratamento e WHERE e.paciente.id = :pacienteId ORDER BY e.data DESC, e.id DESC")
+    Optional<EvolucaoTratamento> findUltimaEvolucaoPaciente(@Param("pacienteId") Long pacienteId);
 
-    // Busca por paciente e dentista
-    List<EvolucaoTratamento> findByPacienteIdAndDentistaId(Long pacienteId, Long dentistaId);
+    // Buscar evoluções com texto específico (busca textual)
+    @Query("SELECT e FROM EvolucaoTratamento e WHERE LOWER(e.evolucaoEIntercorrencias) LIKE LOWER(CONCAT('%', :texto, '%')) ORDER BY e.data DESC")
+    List<EvolucaoTratamento> findByTextoEvolucao(@Param("texto") String texto);
 
-    // Busca por status ativo
-    List<EvolucaoTratamento> findByAtivoTrue();
+    // Buscar por paciente e data específica
+    Optional<EvolucaoTratamento> findByPacienteIdAndData(@Param("pacienteId") Long pacienteId,
+                                                         @Param("data") LocalDate data);
 
-    // Busca por status inativo
-    List<EvolucaoTratamento> findByAtivoFalse();
+    // Buscar evoluções do dia atual
+    @Query("SELECT e FROM EvolucaoTratamento e WHERE e.data = CURRENT_DATE ORDER BY e.paciente.dadosBasicos.nome ASC")
+    List<EvolucaoTratamento> findEvolucoesDoDia();
 
-    // Busca evoluções com retorno atrasado
-    @Query("SELECT e FROM EvolucaoTratamento e WHERE e.retornoNecessario = true AND e.proximaConsulta < :hoje AND e.ativo = true")
-    List<EvolucaoTratamento> findRetornosAtrasados(@Param("hoje") LocalDate hoje);
-
-    // Contagem por paciente
-    @Query("SELECT COUNT(e) FROM EvolucaoTratamento e WHERE e.paciente.id = :pacienteId AND e.ativo = true")
+    // Contar evoluções por paciente
+    @Query("SELECT COUNT(e) FROM EvolucaoTratamento e WHERE e.paciente.id = :pacienteId")
     Long countByPacienteId(@Param("pacienteId") Long pacienteId);
 
-    // Última evolução de um paciente
-    @Query("SELECT e FROM EvolucaoTratamento e WHERE e.paciente.id = :pacienteId AND e.ativo = true ORDER BY e.dataEvolucao DESC LIMIT 1")
-    Optional<EvolucaoTratamento> findUltimaEvolucaoByPacienteId(@Param("pacienteId") Long pacienteId);
+    // Buscar evoluções com limite de resultados
+    @Query("SELECT e FROM EvolucaoTratamento e ORDER BY e.data DESC, e.paciente.dadosBasicos.nome ASC")
+    Page<EvolucaoTratamento> findAllComPaginacao(Pageable pageable);
 
-    // Busca com filtros múltiplos
-    @Query("SELECT e FROM EvolucaoTratamento e WHERE " +
-            "(:pacienteId IS NULL OR e.paciente.id = :pacienteId) AND " +
-            "(:dentistaId IS NULL OR e.dentista.id = :dentistaId) AND " +
-            "(:planoDentalId IS NULL OR e.planoDental.id = :planoDentalId) AND " +
-            "(:dataInicio IS NULL OR e.dataEvolucao >= :dataInicio) AND " +
-            "(:dataFim IS NULL OR e.dataEvolucao <= :dataFim) AND " +
-            "(:tipoEvolucao IS NULL OR e.tipoEvolucao = :tipoEvolucao) AND " +
-            "(:urgente IS NULL OR e.urgente = :urgente) AND " +
-            "e.ativo = true " +
-            "ORDER BY e.dataEvolucao DESC")
-    List<EvolucaoTratamento> findByFiltros(
-            @Param("pacienteId") Long pacienteId,
-            @Param("dentistaId") Long dentistaId,
-            @Param("planoDentalId") Long planoDentalId,
-            @Param("dataInicio") LocalDate dataInicio,
-            @Param("dataFim") LocalDate dataFim,
-            @Param("tipoEvolucao") String tipoEvolucao,
-            @Param("urgente") Boolean urgente
-    );
+    // Verificar se existe evolução para paciente na data
+    boolean existsByPacienteIdAndData(Long pacienteId, LocalDate data);
+
+    // Buscar evoluções por dentista e data
+    @Query("SELECT e FROM EvolucaoTratamento e WHERE e.dentista.id = :dentistaId AND e.data = :data ORDER BY e.paciente.dadosBasicos.nome ASC")
+    List<EvolucaoTratamento> findByDentistaIdAndData(@Param("dentistaId") Long dentistaId,
+                                                     @Param("data") LocalDate data);
 }

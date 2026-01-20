@@ -1,5 +1,5 @@
 // PacienteService.java
-package consultorio.domain.service.pessoa;
+package consultorio.domain.service.paciente;
 
 import consultorio.api.dto.request.pessoa.PacienteRequest;
 import consultorio.api.dto.response.pessoa.PacienteResponse;
@@ -32,7 +32,6 @@ public interface PacienteService {
 
     PacienteResponse buscarPorCpf(String cpf);
 
-    PacienteResponse buscarPorEmail(String email);
 
     // ==================== LISTAGENS ====================
 
@@ -94,8 +93,6 @@ public interface PacienteService {
     boolean existePorCpf(String cpf);
 
     boolean existePorCpfExcluindoId(String cpf, Long id);
-
-    boolean existePorEmail(String email);
 
     // ==================== ESTATÍSTICAS ====================
 

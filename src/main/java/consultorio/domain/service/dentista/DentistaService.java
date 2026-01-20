@@ -19,6 +19,7 @@ public interface DentistaService {
     Page<DentistaResponse> listarTodos(Pageable pageable);
     Page<DentistaResponse> listarAtivos(Pageable pageable);
     Page<DentistaResponse> buscarPorNome(String nome, Pageable pageable);
+    Page<DentistaResponse> buscarPorEspecialidade(String especialidade, Pageable pageable);
     Page<DentistaResponse> buscarPorTermo(String termo, Pageable pageable);
     Page<DentistaResumoResponse> listarTodosResumo(Pageable pageable);
 

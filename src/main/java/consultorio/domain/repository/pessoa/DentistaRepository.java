@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -20,8 +19,8 @@ public interface DentistaRepository extends JpaRepository<Dentista, Long> {
 
     // Buscas com filtros
     Page<Dentista> findByAtivoTrue(Pageable pageable);
-    Page<Dentista> findByNomeContaining(String nome, Pageable pageable);
-    List<Dentista> findByEspecialidade(String especialidade);
+    Page<Dentista> findByNomeContainingIgnoreCase(String nome, Pageable pageable);
+    Page<Dentista> findByEspecialidadeContainingIgnoreCase(String especialidade, Pageable pageable);
 
     // Verificações de existência
     boolean existsByEmail(String email);
@@ -35,6 +34,7 @@ public interface DentistaRepository extends JpaRepository<Dentista, Long> {
     @Query("SELECT d FROM Dentista d WHERE " +
             "LOWER(d.nome) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
             "LOWER(d.email) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
-            "d.cro LIKE CONCAT('%', :termo, '%')")
+            "LOWER(d.especialidade) LIKE LOWER(CONCAT('%', :termo, '%')) OR " +
+            "LOWER(d.cro) LIKE LOWER(CONCAT('%', :termo, '%'))")
     Page<Dentista> buscarPorTermo(@Param("termo") String termo, Pageable pageable);
 }

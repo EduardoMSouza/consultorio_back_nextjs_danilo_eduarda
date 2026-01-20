@@ -28,7 +28,6 @@ import java.util.List;
 @Table(name = "pacientes", indexes = {
         @Index(name = "idx_paciente_prontuario", columnList = "prontuario_numero", unique = true),
         @Index(name = "idx_paciente_cpf", columnList = "cpf", unique = true),
-        @Index(name = "idx_paciente_email", columnList = "email_paciente"),
         @Index(name = "idx_paciente_telefone", columnList = "telefone_paciente"),
         @Index(name = "idx_paciente_nome", columnList = "nome_paciente"),
         @Index(name = "idx_paciente_status", columnList = "status_paciente"),
@@ -169,17 +168,6 @@ public class Paciente {
     }
 
     /**
-     * Define o email em minúsculas.
-     *
-     * @param email email do paciente
-     */
-    public void setEmail(String email) {
-        if (email != null) {
-            dadosBasicos.setEmail(email.trim().toLowerCase());
-        }
-    }
-
-    /**
      * Define o nome removendo espaços extras.
      *
      * @param nome nome do paciente
@@ -202,13 +190,6 @@ public class Paciente {
      */
     public String getCpf() {
         return dadosBasicos != null ? dadosBasicos.getCpf() : null;
-    }
-
-    /**
-     * Método auxiliar para obter o email do paciente
-     */
-    public String getEmail() {
-        return dadosBasicos != null ? dadosBasicos.getEmail() : null;
     }
 
     /**

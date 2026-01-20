@@ -18,12 +18,8 @@ public class DentistaMapper {
         }
 
         Dentista dentista = new Dentista();
-        dentista.setNome(request.getNome());
-        dentista.setCro(request.getCro());
-        dentista.setEspecialidade(request.getEspecialidade());
-        dentista.setTelefone(request.getTelefone());
-        dentista.setEmail(request.getEmail());
-        // O campo 'ativo' é definido como true por padrão na entidade Dentista
+        updateEntity(request, dentista);
+        dentista.setAtivo(true); // Por padrão, novo dentista é ativo
 
         return dentista;
     }
@@ -78,31 +74,30 @@ public class DentistaMapper {
             return;
         }
 
-        // Atualiza apenas os campos que podem ser modificados
-        if (request.getNome() != null) {
+        // Atualiza apenas os campos que não estão em branco
+        if (request.getNome() != null && !request.getNome().isBlank()) {
             dentista.setNome(request.getNome());
         }
 
-        if (request.getCro() != null) {
+        if (request.getCro() != null && !request.getCro().isBlank()) {
             dentista.setCro(request.getCro());
         }
 
-        if (request.getEspecialidade() != null) {
+        if (request.getEspecialidade() != null && !request.getEspecialidade().isBlank()) {
             dentista.setEspecialidade(request.getEspecialidade());
         }
 
-        if (request.getTelefone() != null) {
+        if (request.getTelefone() != null && !request.getTelefone().isBlank()) {
             dentista.setTelefone(request.getTelefone());
         }
 
-        if (request.getEmail() != null) {
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
             dentista.setEmail(request.getEmail());
         }
     }
 
     /**
      * Converte DentistaResumoResponse para DentistaResponse
-     * Útil quando se tem um resumo e precisa completar com dados adicionais
      */
     public DentistaResponse toResponseFromResumo(DentistaResumoResponse resumo, Dentista dentista) {
         if (resumo == null || dentista == null) {
@@ -125,7 +120,6 @@ public class DentistaMapper {
 
     /**
      * Método para copiar dados entre duas entidades Dentista
-     * Útil para operações de clone ou backup
      */
     public void copyEntity(Dentista source, Dentista target) {
         if (source == null || target == null) {

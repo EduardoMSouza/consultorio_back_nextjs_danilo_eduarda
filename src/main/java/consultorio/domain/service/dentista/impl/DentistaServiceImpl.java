@@ -8,10 +8,10 @@ import consultorio.api.exception.BusinessException;
 import consultorio.api.mapper.pessoa.DentistaMapper;
 import consultorio.domain.entity.pessoa.Dentista;
 import consultorio.domain.repository.pessoa.DentistaRepository;
-
 import consultorio.domain.service.dentista.DentistaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -51,7 +51,7 @@ public class DentistaServiceImpl implements DentistaService {
     @Override
     public DentistaResponse buscarPorCro(String cro) {
         log.debug("Buscando dentista por CRO: {}", cro);
-        Dentista dentista = repository.findByCro(cro)
+        Dentista dentista = repository.findByCro(cro.toUpperCase())
                 .orElseThrow(() -> new ResourceNotFoundException("Dentista não encontrado com CRO: " + cro));
         return mapper.toResponse(dentista);
     }
@@ -99,6 +99,7 @@ public class DentistaServiceImpl implements DentistaService {
         return repository.findByAtivoTrue(pageable).map(mapper::toResponse);
     }
 
+    @Override
     public Page<DentistaResumoResponse> listarTodosResumo(Pageable pageable) {
         log.debug("Listando todos dentistas (resumo)");
         return repository.findAll(pageable).map(mapper::toResumoResponse);
@@ -107,7 +108,13 @@ public class DentistaServiceImpl implements DentistaService {
     @Override
     public Page<DentistaResponse> buscarPorNome(String nome, Pageable pageable) {
         log.debug("Buscando dentistas por nome: {}", nome);
-        return repository.findByNomeContaining(nome, pageable).map(mapper::toResponse);
+        return repository.findByNomeContainingIgnoreCase(nome, pageable).map(mapper::toResponse);
+    }
+
+    @Override
+    public Page<DentistaResponse> buscarPorEspecialidade(String especialidade, Pageable pageable) {
+        log.debug("Buscando dentistas por especialidade: {}", especialidade);
+        return repository.findByEspecialidadeContainingIgnoreCase(especialidade, pageable).map(mapper::toResponse);
     }
 
     @Override
@@ -131,13 +138,17 @@ public class DentistaServiceImpl implements DentistaService {
     }
 
     @Override
+    @Cacheable(value = "dentistas", key = "'email:' + #email")
     public boolean existePorEmail(String email) {
-        return repository.existsByEmail(email);
+        log.debug("Verificando existência de email: {}", email);
+        return repository.existsByEmail(email.toLowerCase());
     }
 
     @Override
+    @Cacheable(value = "dentistas", key = "'cro:' + #cro")
     public boolean existePorCro(String cro) {
-        return repository.existsByCro(cro);
+        log.debug("Verificando existência de CRO: {}", cro);
+        return repository.existsByCro(cro.toUpperCase());
     }
 
     // ============ MÉTODOS PRIVADOS ============
@@ -149,36 +160,49 @@ public class DentistaServiceImpl implements DentistaService {
 
     private void alterarStatus(Long id, boolean ativo) {
         Dentista dentista = findById(id);
+
         if (ativo) {
             dentista.ativar();
         } else {
+            // Verifica se pode desativar
+            if (!dentista.getAgendamentos().isEmpty()) {
+                throw new BusinessException("Não é possível desativar dentista com agendamentos vinculados");
+            }
             dentista.desativar();
         }
+
         repository.save(dentista);
+        log.info("Dentista ID: {} {}", id, ativo ? "ativado" : "desativado");
     }
 
     private void validarEmailUnico(String email, Long idAtual) {
         if (email != null && !email.isBlank()) {
-            boolean emailExiste = idAtual == null
-                    ? repository.existsByEmail(email)
-                    : repository.findByEmail(email)
-                    .map(d -> !d.getId().equals(idAtual))
-                    .orElse(false);
+            String emailFormatado = email.trim().toLowerCase();
+            boolean emailExiste;
+
+            if (idAtual == null) {
+                emailExiste = repository.existsByEmail(emailFormatado);
+            } else {
+                emailExiste = repository.findByEmail(emailFormatado)
+                        .filter(d -> !d.getId().equals(idAtual))
+                        .isPresent();
+            }
 
             if (emailExiste) {
-                throw new BusinessException("Já existe um dentista cadastrado com este email");
+                throw new BusinessException("Já existe um dentista cadastrado com o email: " + email);
             }
         }
     }
 
     private void validarCroUnico(String cro, Long idAtual) {
         if (cro != null && !cro.isBlank()) {
+            String croFormatado = cro.trim().toUpperCase();
             boolean croExiste = idAtual == null
-                    ? repository.existsByCro(cro)
-                    : repository.existsByCroAndIdNot(cro, idAtual);
+                    ? repository.existsByCro(croFormatado)
+                    : repository.existsByCroAndIdNot(croFormatado, idAtual);
 
             if (croExiste) {
-                throw new BusinessException("Já existe um dentista cadastrado com este CRO");
+                throw new BusinessException("Já existe um dentista cadastrado com o CRO: " + cro);
             }
         }
     }

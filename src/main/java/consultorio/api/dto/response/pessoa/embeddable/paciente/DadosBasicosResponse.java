@@ -16,7 +16,6 @@ public class DadosBasicosResponse {
 
     private String prontuarioNumero;
     private String nome;
-    private String email;
     private String telefone;
     private String rg;
     private String orgaoExpedidor;

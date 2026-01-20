@@ -28,10 +28,6 @@ public class DadosBasicosRequest {
     @Size(min = 3, max = 100, message = "Nome deve ter entre 3 e 100 caracteres")
     private String nome;
 
-    @Email(message = "Email inválido")
-    @Size(max = 100, message = "Email deve ter no máximo 100 caracteres")
-    private String email;
-
     @Pattern(regexp = "^\\(?\\d{2}\\)?\\s?\\d{4,5}-?\\d{4}$|^$",
             message = "Telefone inválido. Use o formato (XX) XXXXX-XXXX")
     private String telefone;

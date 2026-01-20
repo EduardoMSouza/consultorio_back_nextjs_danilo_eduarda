@@ -155,10 +155,6 @@ public class PacienteMapper {
             response.setDataNascimento(dados.getDataNascimento());
             response.setStatus(dados.getStatus());
 
-            // Formatar CPF
-            if (dados.getCpf() != null && dados.getCpf().length() == 11) {
-                response.setCpfFormatado(formatarCPF(dados.getCpf()));
-            }
 
             // Calcular idade
             if (dados.getDataNascimento() != null) {

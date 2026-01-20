@@ -30,9 +30,6 @@ public interface PacienteRepository extends JpaRepository<Paciente, Long>, JpaSp
     Optional<Paciente> findByRgAndOrgaoExpedidor(@Param("rg") String rg,
                                                  @Param("orgaoExpedidor") String orgaoExpedidor);
 
-    @Query("SELECT p FROM Paciente p WHERE LOWER(p.dadosBasicos.email) = LOWER(:email)")
-    Optional<Paciente> findByEmailIgnoreCase(@Param("email") String email);
-
     // ==================== BUSCAS POR NOME (Case-insensitive com ILIKE) ====================
 
     @Query("SELECT p FROM Paciente p WHERE p.dadosBasicos.nome ILIKE %:nome% AND p.ativo = true")
@@ -227,9 +224,6 @@ public interface PacienteRepository extends JpaRepository<Paciente, Long>, JpaSp
             "FROM Paciente p WHERE p.dadosBasicos.rg = :rg AND p.dadosBasicos.orgaoExpedidor = :orgaoExpedidor")
     boolean existsByRgAndOrgaoExpedidor(@Param("rg") String rg, @Param("orgaoExpedidor") String orgaoExpedidor);
 
-    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END " +
-            "FROM Paciente p WHERE LOWER(p.dadosBasicos.email) = LOWER(:email)")
-    boolean existsByEmailIgnoreCase(@Param("email") String email);
 
     // ==================== BUSCAS COMPLEXAS COM FILTROS ====================
 
@@ -340,7 +334,6 @@ public interface PacienteRepository extends JpaRepository<Paciente, Long>, JpaSp
             p.id,
             p.dados_basicos->>'nome' as nome,
             p.dados_basicos->>'telefone' as telefone,
-            p.dados_basicos->>'email' as email,
             (p.dados_basicos->>'dataNascimento')::date as data_nascimento,
             (p.convenio->>'nomeConvenio')::text as convenio,
             p.criado_em

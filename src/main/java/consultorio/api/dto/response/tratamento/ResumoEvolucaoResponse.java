@@ -4,28 +4,20 @@ import lombok.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EvolucaoTratamentoResponse {
+public class ResumoEvolucaoResponse {
 
     private Long id;
-    private Long pacienteId;
     private String pacienteNome;
-    private Long dentistaId;
     private String dentistaNome;
 
     @JsonFormat(pattern = "dd/MM/yyyy")
     private LocalDate data;
 
-    private String evolucaoEIntercorrencias;
-
-    @JsonFormat(pattern = "dd/MM/yyyy HH:mm:ss")
-    private LocalDateTime criadoEm;
-
-    @JsonFormat(pattern = "dd/MM/yyyy HH:mm:ss")
-    private LocalDateTime atualizadoEm;
+    private String evolucaoResumida; // Primeiros 100 caracteres
+    private Integer tamanhoTexto;
 }

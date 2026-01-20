@@ -3,7 +3,7 @@ package consultorio.api.controller.pessoa;
 import consultorio.api.dto.request.pessoa.PacienteRequest;
 import consultorio.api.dto.response.pessoa.PacienteResponse;
 import consultorio.api.dto.response.pessoa.PacienteResumoResponse;
-import consultorio.domain.service.pessoa.PacienteService;
+import consultorio.domain.service.paciente.PacienteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -75,12 +75,6 @@ public class PacienteController {
     @Operation(summary = "Buscar por CPF")
     public ResponseEntity<PacienteResponse> buscarPorCpf(@PathVariable String cpf) {
         return ResponseEntity.ok(pacienteService.buscarPorCpf(cpf));
-    }
-
-    @GetMapping("/email/{email}")
-    @Operation(summary = "Buscar por email")
-    public ResponseEntity<PacienteResponse> buscarPorEmail(@PathVariable String email) {
-        return ResponseEntity.ok(pacienteService.buscarPorEmail(email));
     }
 
     @GetMapping
@@ -218,12 +212,6 @@ public class PacienteController {
     @Operation(summary = "Verificar CPF")
     public ResponseEntity<Boolean> verificarCpf(@PathVariable String cpf) {
         return ResponseEntity.ok(pacienteService.existePorCpf(cpf));
-    }
-
-    @GetMapping("/verificar/email/{email}")
-    @Operation(summary = "Verificar email")
-    public ResponseEntity<Boolean> verificarEmail(@PathVariable String email) {
-        return ResponseEntity.ok(pacienteService.existePorEmail(email));
     }
 
     @GetMapping("/estatisticas/contagem")

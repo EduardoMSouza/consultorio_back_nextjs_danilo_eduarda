@@ -1,341 +1,228 @@
 package consultorio.domain.service.evolucao_tratamento.impl;
 
-import consultorio.api.dto.request.tratamento.EvolucaoTratamentoRequest;
+
+import consultorio.api.dto.request.tratamento.AtualizarEvolucaoTratamentoRequest;
+import consultorio.api.dto.request.tratamento.CriarEvolucaoTratamentoRequest;
+import consultorio.api.dto.response.tratamento.EvolucaoTratamentoDetalheResponse;
 import consultorio.api.dto.response.tratamento.EvolucaoTratamentoResponse;
+import consultorio.api.dto.response.tratamento.PaginacaoResponse;
+import consultorio.api.dto.response.tratamento.ResumoEvolucaoResponse;
 import consultorio.api.mapper.tratamento.EvolucaoTratamentoMapper;
 import consultorio.domain.entity.pessoa.Dentista;
 import consultorio.domain.entity.pessoa.Paciente;
 import consultorio.domain.entity.tratamento.EvolucaoTratamento;
-import consultorio.domain.entity.tratamento.PlanoDental;
 import consultorio.domain.repository.pessoa.DentistaRepository;
 import consultorio.domain.repository.pessoa.PacienteRepository;
 import consultorio.domain.repository.tratamento.EvolucaoTratamentoRepository;
-import consultorio.domain.repository.tratamento.PlanoDentalRepository;
 import consultorio.domain.service.evolucao_tratamento.EvolucaoTratamentoService;
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class EvolucaoTratamentoServiceImpl implements EvolucaoTratamentoService {
 
     private final EvolucaoTratamentoRepository evolucaoRepository;
     private final PacienteRepository pacienteRepository;
     private final DentistaRepository dentistaRepository;
-    private final PlanoDentalRepository planoDentalRepository;
-    private final EvolucaoTratamentoMapper evolucaoMapper;
+    private final EvolucaoTratamentoMapper mapper;
 
     @Override
-    @Transactional
-    public EvolucaoTratamentoResponse criar(EvolucaoTratamentoRequest request) {
-        log.info("Criando nova evolução de tratamento para paciente ID: {}", request.getPacienteId());
-
-        // Formatar campos antes de processar
-        request.formatarCampos();
-
-        // Validar e buscar entidades relacionadas
-        Paciente paciente = buscarPaciente(request.getPacienteId());
-        Dentista dentista = buscarDentista(request.getDentistaId());
-        PlanoDental planoDental = buscarPlanoDental(request.getPlanoDentalId());
-
-        // Criar entidade
-        EvolucaoTratamento evolucao = evolucaoMapper.toEntity(request, paciente, dentista, planoDental);
-        EvolucaoTratamento evolucaoSalva = evolucaoRepository.save(evolucao);
-
-        log.info("Evolução de tratamento criada com ID: {}", evolucaoSalva.getId());
-        return evolucaoMapper.toResponse(evolucaoSalva);
-    }
-
-    @Override
-    public EvolucaoTratamentoResponse buscarPorId(Long id) {
-        log.info("Buscando evolução de tratamento por ID: {}", id);
-
-        EvolucaoTratamento evolucao = evolucaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Evolução de tratamento não encontrada com ID: " + id));
-
-        return evolucaoMapper.toResponse(evolucao);
-    }
-
-    @Override
+    @Transactional(readOnly = true)
     public List<EvolucaoTratamentoResponse> listarTodos() {
-        log.info("Listando todas as evoluções de tratamento ativas");
-
-        List<EvolucaoTratamento> evolucoes = evolucaoRepository.findByAtivoTrue();
-        return evolucaoMapper.toResponseList(evolucoes);
+        return evolucaoRepository.findAll().stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
-    @Transactional
-    public EvolucaoTratamentoResponse atualizar(Long id, EvolucaoTratamentoRequest request) {
-        log.info("Atualizando evolução de tratamento ID: {}", id);
+    @Transactional(readOnly = true)
+    public PaginacaoResponse<EvolucaoTratamentoResponse> listarPaginado(Pageable pageable) {
+        Page<EvolucaoTratamento> page = evolucaoRepository.findAllComPaginacao(pageable);
 
-        // Formatar campos antes de processar
-        request.formatarCampos();
+        List<EvolucaoTratamentoResponse> conteudo = page.getContent().stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
 
-        // Buscar evolução existente
-        EvolucaoTratamento evolucao = evolucaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Evolução de tratamento não encontrada com ID: " + id));
-
-        // Validar e buscar entidades relacionadas
-        Paciente paciente = buscarPaciente(request.getPacienteId());
-        Dentista dentista = buscarDentista(request.getDentistaId());
-        PlanoDental planoDental = buscarPlanoDental(request.getPlanoDentalId());
-
-        // Atualizar entidade
-        evolucaoMapper.updateEntityFromRequest(request, evolucao, paciente, dentista, planoDental);
-        EvolucaoTratamento evolucaoAtualizada = evolucaoRepository.save(evolucao);
-
-        log.info("Evolução de tratamento ID: {} atualizada", id);
-        return evolucaoMapper.toResponse(evolucaoAtualizada);
+        return PaginacaoResponse.<EvolucaoTratamentoResponse>builder()
+                .conteudo(conteudo)
+                .paginaAtual(page.getNumber())
+                .totalPaginas(page.getTotalPages())
+                .totalElementos(page.getTotalElements())
+                .tamanhoPagina(page.getSize())
+                .primeiraPagina(page.isFirst())
+                .ultimaPagina(page.isLast())
+                .build();
     }
 
     @Override
-    @Transactional
-    public EvolucaoTratamentoResponse atualizarParcial(Long id, EvolucaoTratamentoRequest request) {
-        log.info("Atualização parcial da evolução de tratamento ID: {}", id);
-
-        // Buscar evolução existente
-        EvolucaoTratamento evolucao = evolucaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Evolução de tratamento não encontrada com ID: " + id));
-
-        // Aplicar atualização parcial
-        evolucaoMapper.updateEntityPartial(request, evolucao);
-        EvolucaoTratamento evolucaoAtualizada = evolucaoRepository.save(evolucao);
-
-        log.info("Evolução de tratamento ID: {} atualizada parcialmente", id);
-        return evolucaoMapper.toResponse(evolucaoAtualizada);
+    @Transactional(readOnly = true)
+    public EvolucaoTratamentoDetalheResponse buscarPorId(Long id) {
+        return evolucaoRepository.findById(id)
+                .map(mapper::toDetalheResponse)
+                .orElseThrow(() -> new RuntimeException("Evolução não encontrada com ID: " + id));
     }
 
     @Override
-    @Transactional
-    public void desativar(Long id) {
-        log.info("Desativando evolução de tratamento ID: {}", id);
+    public EvolucaoTratamentoResponse criar(CriarEvolucaoTratamentoRequest request) {
+        // Validar paciente
+        Paciente paciente = pacienteRepository.findById(request.getPacienteId())
+                .orElseThrow(() -> new RuntimeException("Paciente não encontrado com ID: " + request.getPacienteId()));
 
-        EvolucaoTratamento evolucao = evolucaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Evolução de tratamento não encontrada com ID: " + id));
+        // Validar dentista
+        Dentista dentista = dentistaRepository.findById(request.getDentistaId())
+                .orElseThrow(() -> new RuntimeException("Dentista não encontrado com ID: " + request.getDentistaId()));
 
-        evolucao.desativar();
-        evolucaoRepository.save(evolucao);
-
-        log.info("Evolução de tratamento ID: {} desativada", id);
-    }
-
-    @Override
-    @Transactional
-    public void ativar(Long id) {
-        log.info("Ativando evolução de tratamento ID: {}", id);
-
-        EvolucaoTratamento evolucao = evolucaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Evolução de tratamento não encontrada com ID: " + id));
-
-        evolucao.ativar();
-        evolucaoRepository.save(evolucao);
-
-        log.info("Evolução de tratamento ID: {} ativada", id);
-    }
-
-    @Override
-    @Transactional
-    public void excluir(Long id) {
-        log.warn("Excluindo permanentemente evolução de tratamento ID: {}", id);
-
-        if (!evolucaoRepository.existsById(id)) {
-            throw new EntityNotFoundException("Evolução de tratamento não encontrada com ID: " + id);
+        // Verificar se já existe evolução para o mesmo paciente na mesma data
+        if (evolucaoRepository.findByPacienteIdAndData(paciente.getId(), request.getData()).isPresent()) {
+            throw new RuntimeException("Já existe uma evolução registrada para este paciente na data informada");
         }
 
-        evolucaoRepository.deleteById(id);
-        log.info("Evolução de tratamento ID: {} excluída permanentemente", id);
+        // Criar entidade
+        EvolucaoTratamento evolucao = mapper.toEntity(request, paciente, dentista);
+
+        // Salvar
+        EvolucaoTratamento saved = evolucaoRepository.save(evolucao);
+        return mapper.toResponse(saved);
     }
 
     @Override
+    public EvolucaoTratamentoResponse atualizar(Long id, AtualizarEvolucaoTratamentoRequest request) {
+        EvolucaoTratamento evolucao = evolucaoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Evolução não encontrada com ID: " + id));
+
+        // Se estiver alterando a data, verificar conflitos
+        if (request.getData() != null && !request.getData().equals(evolucao.getData())) {
+            if (evolucaoRepository.findByPacienteIdAndData(evolucao.getPaciente().getId(), request.getData()).isPresent()) {
+                throw new RuntimeException("Já existe uma evolução registrada para este paciente na nova data informada");
+            }
+        }
+
+        // Atualizar campos
+        mapper.updateEntityFromDTO(request, evolucao);
+
+        EvolucaoTratamento updated = evolucaoRepository.save(evolucao);
+        return mapper.toResponse(updated);
+    }
+
+    @Override
+    public void excluir(Long id) {
+        EvolucaoTratamento evolucao = evolucaoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Evolução não encontrada com ID: " + id));
+
+        // Verificar se é evolução recente (permitir exclusão apenas de evoluções recentes)
+        LocalDate dataLimite = LocalDate.now().minusDays(7); // Permitir exclusão de evoluções dos últimos 7 dias
+        if (evolucao.getData().isBefore(dataLimite)) {
+            throw new RuntimeException("Não é possível excluir evoluções com mais de 7 dias");
+        }
+
+        evolucaoRepository.delete(evolucao);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<EvolucaoTratamentoResponse> buscarPorPaciente(Long pacienteId) {
-        log.info("Buscando evoluções por paciente ID: {}", pacienteId);
-
-        List<EvolucaoTratamento> evolucoes = evolucaoRepository.findByPacienteId(pacienteId);
-        return evolucaoMapper.toResponseList(evolucoes);
+        return evolucaoRepository.findByPacienteIdOrderByDataDesc(pacienteId).stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PaginacaoResponse<EvolucaoTratamentoResponse> buscarPorPacientePaginado(Long pacienteId, Pageable pageable) {
+        Page<EvolucaoTratamento> page = evolucaoRepository.findByPacienteIdOrderByDataDesc(pacienteId, pageable);
+
+        List<EvolucaoTratamentoResponse> conteudo = page.getContent().stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
+
+        return PaginacaoResponse.<EvolucaoTratamentoResponse>builder()
+                .conteudo(conteudo)
+                .paginaAtual(page.getNumber())
+                .totalPaginas(page.getTotalPages())
+                .totalElementos(page.getTotalElements())
+                .tamanhoPagina(page.getSize())
+                .primeiraPagina(page.isFirst())
+                .ultimaPagina(page.isLast())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<EvolucaoTratamentoResponse> buscarPorDentista(Long dentistaId) {
-        log.info("Buscando evoluções por dentista ID: {}", dentistaId);
-
-        List<EvolucaoTratamento> evolucoes = evolucaoRepository.findByDentistaId(dentistaId);
-        return evolucaoMapper.toResponseList(evolucoes);
+        return evolucaoRepository.findByDentistaIdOrderByDataDesc(dentistaId).stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public List<EvolucaoTratamentoResponse> buscarPorPlanoDental(Long planoDentalId) {
-        log.info("Buscando evoluções por plano dental ID: {}", planoDentalId);
-
-        List<EvolucaoTratamento> evolucoes = evolucaoRepository.findByPlanoDentalId(planoDentalId);
-        return evolucaoMapper.toResponseList(evolucoes);
-    }
-
-    @Override
+    @Transactional(readOnly = true)
     public List<EvolucaoTratamentoResponse> buscarPorData(LocalDate data) {
-        log.info("Buscando evoluções por data: {}", data);
-
-        List<EvolucaoTratamento> evolucoes = evolucaoRepository.findByDataEvolucao(data);
-        return evolucaoMapper.toResponseList(evolucoes);
+        return evolucaoRepository.findByDataOrderByPacienteNomeAsc(data).stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public List<EvolucaoTratamentoResponse> buscarPorPeriodo(LocalDate inicio, LocalDate fim) {
-        log.info("Buscando evoluções no período de {} até {}", inicio, fim);
-
-        List<EvolucaoTratamento> evolucoes = evolucaoRepository.findByDataEvolucaoBetween(inicio, fim);
-        return evolucaoMapper.toResponseList(evolucoes);
+    @Transactional(readOnly = true)
+    public List<EvolucaoTratamentoResponse> buscarPorPeriodo(LocalDate dataInicio, LocalDate dataFim) {
+        return evolucaoRepository.findByPeriodo(dataInicio, dataFim).stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public List<EvolucaoTratamentoResponse> buscarUrgentes() {
-        log.info("Buscando evoluções urgentes");
-
-        List<EvolucaoTratamento> evolucoes = evolucaoRepository.findByUrgenteTrue();
-        return evolucaoMapper.toResponseList(evolucoes);
+    @Transactional(readOnly = true)
+    public List<EvolucaoTratamentoResponse> buscarPorPacienteEPeriodo(Long pacienteId, LocalDate dataInicio, LocalDate dataFim) {
+        return evolucaoRepository.findByPacienteAndPeriodo(pacienteId, dataInicio, dataFim).stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public List<EvolucaoTratamentoResponse> buscarComRetornoNecessario() {
-        log.info("Buscando evoluções com retorno necessário");
-
-        List<EvolucaoTratamento> evolucoes = evolucaoRepository.findByRetornoNecessarioTrue();
-        return evolucaoMapper.toResponseList(evolucoes);
+    @Transactional(readOnly = true)
+    public EvolucaoTratamentoDetalheResponse buscarUltimaEvolucaoPaciente(Long pacienteId) {
+        return evolucaoRepository.findUltimaEvolucaoPaciente(pacienteId)
+                .map(mapper::toDetalheResponse)
+                .orElseThrow(() -> new RuntimeException("Nenhuma evolução encontrada para o paciente com ID: " + pacienteId));
     }
 
     @Override
-    public List<EvolucaoTratamentoResponse> buscarRetornosAtrasados() {
-        log.info("Buscando evoluções com retorno atrasado");
-
-        List<EvolucaoTratamento> evolucoes = evolucaoRepository.findRetornosAtrasados(LocalDate.now());
-        return evolucaoMapper.toResponseList(evolucoes);
+    @Transactional(readOnly = true)
+    public List<ResumoEvolucaoResponse> buscarEvolucoesDoDia() {
+        return evolucaoRepository.findEvolucoesDoDia().stream()
+                .map(mapper::toResumoResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
-    @Transactional
-    public EvolucaoTratamentoResponse marcarComoUrgente(Long id) {
-        log.info("Marcando evolução ID: {} como urgente", id);
-
-        EvolucaoTratamento evolucao = evolucaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Evolução de tratamento não encontrada com ID: " + id));
-
-        evolucao.marcarComoUrgente();
-        EvolucaoTratamento evolucaoAtualizada = evolucaoRepository.save(evolucao);
-
-        return evolucaoMapper.toResponse(evolucaoAtualizada);
+    @Transactional(readOnly = true)
+    public List<ResumoEvolucaoResponse> buscarPorTextoEvolucao(String texto) {
+        return evolucaoRepository.findByTextoEvolucao(texto).stream()
+                .map(mapper::toResumoResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
-    @Transactional
-    public EvolucaoTratamentoResponse agendarRetorno(Long id, LocalDate dataRetorno, String motivo) {
-        log.info("Agendando retorno para evolução ID: {} na data {}", id, dataRetorno);
-
-        EvolucaoTratamento evolucao = evolucaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Evolução de tratamento não encontrada com ID: " + id));
-
-        evolucao.agendarRetorno(dataRetorno, motivo);
-        EvolucaoTratamento evolucaoAtualizada = evolucaoRepository.save(evolucao);
-
-        return evolucaoMapper.toResponse(evolucaoAtualizada);
-    }
-
-    @Override
-    @Transactional
-    public EvolucaoTratamentoResponse adicionarProcedimento(Long id, String procedimento) {
-        log.info("Adicionando procedimento à evolução ID: {}", id);
-
-        EvolucaoTratamento evolucao = evolucaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Evolução de tratamento não encontrada com ID: " + id));
-
-        evolucao.adicionarProcedimento(procedimento);
-        EvolucaoTratamento evolucaoAtualizada = evolucaoRepository.save(evolucao);
-
-        return evolucaoMapper.toResponse(evolucaoAtualizada);
-    }
-
-    @Override
-    @Transactional
-    public EvolucaoTratamentoResponse adicionarMedicamento(Long id, String medicamento) {
-        log.info("Adicionando medicamento à evolução ID: {}", id);
-
-        EvolucaoTratamento evolucao = evolucaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Evolução de tratamento não encontrada com ID: " + id));
-
-        evolucao.adicionarMedicamento(medicamento);
-        EvolucaoTratamento evolucaoAtualizada = evolucaoRepository.save(evolucao);
-
-        return evolucaoMapper.toResponse(evolucaoAtualizada);
-    }
-
-    @Override
-    @Transactional
-    public EvolucaoTratamentoResponse adicionarMaterial(Long id, String material) {
-        log.info("Adicionando material à evolução ID: {}", id);
-
-        EvolucaoTratamento evolucao = evolucaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Evolução de tratamento não encontrada com ID: " + id));
-
-        evolucao.adicionarMaterial(material);
-        EvolucaoTratamento evolucaoAtualizada = evolucaoRepository.save(evolucao);
-
-        return evolucaoMapper.toResponse(evolucaoAtualizada);
-    }
-
-    @Override
-    public List<EvolucaoTratamentoResponse> buscarComFiltros(Long pacienteId, Long dentistaId, Long planoDentalId,
-                                                             LocalDate dataInicio, LocalDate dataFim,
-                                                             String tipoEvolucao, Boolean urgente) {
-        log.info("Buscando evoluções com filtros: paciente={}, dentista={}, plano={}, inicio={}, fim={}, tipo={}, urgente={}",
-                pacienteId, dentistaId, planoDentalId, dataInicio, dataFim, tipoEvolucao, urgente);
-
-        List<EvolucaoTratamento> evolucoes = evolucaoRepository.findByFiltros(
-                pacienteId, dentistaId, planoDentalId, dataInicio, dataFim, tipoEvolucao, urgente);
-
-        return evolucaoMapper.toResponseList(evolucoes);
-    }
-
-    @Override
-    public Long contarPorPaciente(Long pacienteId) {
-        log.info("Contando evoluções do paciente ID: {}", pacienteId);
-
+    public Long contarEvolucoesPorPaciente(Long pacienteId) {
         return evolucaoRepository.countByPacienteId(pacienteId);
     }
 
     @Override
-    public EvolucaoTratamentoResponse buscarUltimaEvolucaoPorPaciente(Long pacienteId) {
-        log.info("Buscando última evolução do paciente ID: {}", pacienteId);
-
-        EvolucaoTratamento evolucao = evolucaoRepository.findUltimaEvolucaoByPacienteId(pacienteId)
-                .orElseThrow(() -> new EntityNotFoundException("Nenhuma evolução encontrada para o paciente ID: " + pacienteId));
-
-        return evolucaoMapper.toResponse(evolucao);
+    public Long contarTotalEvolucoes() {
+        return evolucaoRepository.count();
     }
 
     @Override
-    public boolean existePorId(Long id) {
-        return evolucaoRepository.existsById(id);
-    }
-
-    // Métodos auxiliares privados
-    private Paciente buscarPaciente(Long pacienteId) {
-        return pacienteRepository.findById(pacienteId)
-                .orElseThrow(() -> new EntityNotFoundException("Paciente não encontrado com ID: " + pacienteId));
-    }
-
-    private Dentista buscarDentista(Long dentistaId) {
-        return dentistaRepository.findById(dentistaId)
-                .orElseThrow(() -> new EntityNotFoundException("Dentista não encontrado com ID: " + dentistaId));
-    }
-
-    private PlanoDental buscarPlanoDental(Long planoDentalId) {
-        return planoDentalRepository.findById(planoDentalId)
-                .orElseThrow(() -> new EntityNotFoundException("Plano dental não encontrado com ID: " + planoDentalId));
+    public boolean existeEvolucaoNaData(Long pacienteId, LocalDate data) {
+        return evolucaoRepository.findByPacienteIdAndData(pacienteId, data).isPresent();
     }
 }

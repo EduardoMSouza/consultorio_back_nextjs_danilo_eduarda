@@ -6,7 +6,7 @@ import consultorio.api.dto.response.pessoa.PacienteResumoResponse;
 import consultorio.api.mapper.pessoa.PacienteMapper;
 import consultorio.domain.entity.pessoa.Paciente;
 import consultorio.domain.repository.pessoa.PacienteRepository;
-import consultorio.domain.service.pessoa.PacienteService;
+import consultorio.domain.service.paciente.PacienteService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,13 +47,6 @@ public class PacienteServiceImpl implements PacienteService {
         if (request.getDadosBasicos().getCpf() != null && !request.getDadosBasicos().getCpf().isEmpty()) {
             if (existePorCpf(request.getDadosBasicos().getCpf())) {
                 throw new IllegalArgumentException("Já existe um paciente com este CPF");
-            }
-        }
-
-        // Validar unicidade do email (se fornecido)
-        if (request.getDadosBasicos().getEmail() != null && !request.getDadosBasicos().getEmail().isEmpty()) {
-            if (existePorEmail(request.getDadosBasicos().getEmail())) {
-                throw new IllegalArgumentException("Já existe um paciente com este email");
             }
         }
 
@@ -100,18 +93,6 @@ public class PacienteServiceImpl implements PacienteService {
         if (request.getDadosBasicos().getCpf() != null && !request.getDadosBasicos().getCpf().isEmpty()) {
             if (existePorCpfExcluindoId(request.getDadosBasicos().getCpf(), id)) {
                 throw new IllegalArgumentException("Já existe outro paciente com este CPF");
-            }
-        }
-
-        // Validar unicidade do email (se alterado)
-        if (request.getDadosBasicos().getEmail() != null && !request.getDadosBasicos().getEmail().isEmpty()) {
-            if (existePorEmail(request.getDadosBasicos().getEmail())) {
-                // Verificar se não é o mesmo paciente
-                Paciente pacientePorEmail = pacienteRepository.findByEmailIgnoreCase(request.getDadosBasicos().getEmail())
-                        .orElse(null);
-                if (pacientePorEmail != null && !pacientePorEmail.getId().equals(id)) {
-                    throw new IllegalArgumentException("Já existe outro paciente com este email");
-                }
             }
         }
 
@@ -201,21 +182,6 @@ public class PacienteServiceImpl implements PacienteService {
 
         Paciente paciente = pacienteRepository.findByCpf(cpf)
                 .orElseThrow(() -> new EntityNotFoundException("Paciente não encontrado com CPF: " + cpf));
-
-        if (!paciente.getAtivo()) {
-            throw new IllegalStateException(PACIENTE_INATIVO + paciente.getId());
-        }
-
-        return pacienteMapper.toResponse(paciente);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PacienteResponse buscarPorEmail(String email) {
-        log.debug("Buscando paciente por email: {}", email);
-
-        Paciente paciente = pacienteRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new EntityNotFoundException("Paciente não encontrado com email: " + email));
 
         if (!paciente.getAtivo()) {
             throw new IllegalStateException(PACIENTE_INATIVO + paciente.getId());
@@ -453,12 +419,6 @@ public class PacienteServiceImpl implements PacienteService {
     @Transactional(readOnly = true)
     public boolean existePorCpfExcluindoId(String cpf, Long id) {
         return pacienteRepository.existsByCpfAndIdNot(cpf, id);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public boolean existePorEmail(String email) {
-        return pacienteRepository.existsByEmailIgnoreCase(email);
     }
 
     // ==================== ESTATÍSTICAS ====================

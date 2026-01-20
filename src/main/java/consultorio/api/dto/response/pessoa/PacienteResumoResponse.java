@@ -19,7 +19,6 @@ public class PacienteResumoResponse {
     private String nome;
     private String telefone;
     private String cpf;
-    private String cpfFormatado;
     private LocalDate dataNascimento;
     private Integer idade;
     private String convenio;
@@ -27,10 +26,4 @@ public class PacienteResumoResponse {
     private Boolean status;
     private Boolean ativo;
 
-    public String getCpfFormatado() {
-        if (cpf == null || cpf.length() != 11) {
-            return cpf;
-        }
-        return cpf.replaceAll("(\\d{3})(\\d{3})(\\d{3})(\\d{2})", "$1.$2.$3-$4");
-    }
 }

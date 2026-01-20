@@ -1,7 +1,6 @@
 package consultorio.domain.repository.tratamento;
 
 import consultorio.domain.entity.tratamento.PlanoDental;
-import consultorio.domain.entity.tratamento.enums.StatusPlano;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,246 +16,62 @@ import java.util.Optional;
 @Repository
 public interface PlanoDentalRepository extends JpaRepository<PlanoDental, Long> {
 
-    // ========== BUSCAS BÁSICAS ==========
+    // Buscar por paciente
+    List<PlanoDental> findByPacienteIdOrderByCriadoEmDesc(Long pacienteId);
+    Page<PlanoDental> findByPacienteIdOrderByCriadoEmDesc(Long pacienteId, Pageable pageable);
 
-    /**
-     * Busca plano por ID e ativo
-     */
-    Optional<PlanoDental> findByIdAndAtivoTrue(Long id);
+    // Buscar por dentista
+    List<PlanoDental> findByDentistaIdOrderByCriadoEmDesc(Long dentistaId);
+    Page<PlanoDental> findByDentistaIdOrderByCriadoEmDesc(Long dentistaId, Pageable pageable);
 
-    /**
-     * Verifica se plano existe por ID e ativo
-     */
-    boolean existsByIdAndAtivoTrue(Long id);
+    // Buscar por dente
+    List<PlanoDental> findByDenteOrderByCriadoEmDesc(String dente);
 
-    // ========== BUSCAS POR PACIENTE ==========
+    // Buscar por procedimento (containing)
+    List<PlanoDental> findByProcedimentoContainingIgnoreCaseOrderByCriadoEmDesc(String procedimento);
 
-    List<PlanoDental> findByPacienteId(Long pacienteId);
-    Page<PlanoDental> findByPacienteId(Long pacienteId, Pageable pageable);
-    List<PlanoDental> findByPacienteIdAndAtivoTrue(Long pacienteId);
-    List<PlanoDental> findByPacienteIdAndAtivoTrueOrderByCriadoEmDesc(Long pacienteId);
+    // Buscar por período
+    @Query("SELECT p FROM PlanoDental p WHERE p.criadoEm BETWEEN :dataInicio AND :dataFim ORDER BY p.criadoEm DESC")
+    List<PlanoDental> findByPeriodo(@Param("dataInicio") LocalDateTime dataInicio,
+                                    @Param("dataFim") LocalDateTime dataFim);
 
-    // ========== BUSCAS POR DENTISTA ==========
+    // Buscar por paciente e período
+    @Query("SELECT p FROM PlanoDental p WHERE p.paciente.id = :pacienteId AND p.criadoEm BETWEEN :dataInicio AND :dataFim ORDER BY p.criadoEm DESC")
+    List<PlanoDental> findByPacienteAndPeriodo(@Param("pacienteId") Long pacienteId,
+                                               @Param("dataInicio") LocalDateTime dataInicio,
+                                               @Param("dataFim") LocalDateTime dataFim);
 
-    List<PlanoDental> findByDentistaId(Long dentistaId);
-    Page<PlanoDental> findByDentistaId(Long dentistaId, Pageable pageable);
-    List<PlanoDental> findByDentistaIdAndAtivoTrue(Long dentistaId);
-    List<PlanoDental> findByDentistaIdAndAtivoTrueOrderByCriadoEmDesc(Long dentistaId);
+    // Buscar planos com desconto
+    @Query("SELECT p FROM PlanoDental p WHERE p.valor != p.valorFinal")
+    List<PlanoDental> findPlanosComDesconto();
 
-    // ========== BUSCAS POR PACIENTE E DENTISTA ==========
+    // Buscar planos por valor maior que
+    List<PlanoDental> findByValorGreaterThanOrderByValorDesc(BigDecimal valor);
 
-    List<PlanoDental> findByPacienteIdAndDentistaId(Long pacienteId, Long dentistaId);
-    List<PlanoDental> findByPacienteIdAndDentistaIdAndAtivoTrue(Long pacienteId, Long dentistaId);
+    // Buscar planos por valor final maior que
+    List<PlanoDental> findByValorFinalGreaterThanOrderByValorFinalDesc(BigDecimal valorFinal);
 
-    // ========== BUSCAS POR STATUS ==========
+    // Somar valor total por paciente
+    @Query("SELECT SUM(p.valorFinal) FROM PlanoDental p WHERE p.paciente.id = :pacienteId")
+    Optional<BigDecimal> somarValorTotalPorPaciente(@Param("pacienteId") Long pacienteId);
 
-    List<PlanoDental> findByStatus(StatusPlano status);
-    Page<PlanoDental> findByStatus(StatusPlano status, Pageable pageable);
-    List<PlanoDental> findByStatusAndAtivoTrue(StatusPlano status);
+    // Somar valor total por dentista
+    @Query("SELECT SUM(p.valorFinal) FROM PlanoDental p WHERE p.dentista.id = :dentistaId")
+    Optional<BigDecimal> somarValorTotalPorDentista(@Param("dentistaId") Long dentistaId);
 
-    // ========== BUSCAS POR DENTE E PROCEDIMENTO ==========
+    // Contar quantidade de planos por paciente
+    @Query("SELECT COUNT(p) FROM PlanoDental p WHERE p.paciente.id = :pacienteId")
+    Long countByPacienteId(@Param("pacienteId") Long pacienteId);
 
-    List<PlanoDental> findByDente(String dente);
-    List<PlanoDental> findByDenteAndAtivoTrue(String dente);
-    List<PlanoDental> findByProcedimentoContainingIgnoreCase(String procedimento);
-    List<PlanoDental> findByProcedimentoContainingIgnoreCaseAndAtivoTrue(String procedimento);
-    List<PlanoDental> findByDenteAndProcedimentoContainingIgnoreCase(String dente, String procedimento);
+    // Buscar planos mais recentes
+    @Query("SELECT p FROM PlanoDental p ORDER BY p.criadoEm DESC")
+    List<PlanoDental> findPlanosRecentes(Pageable pageable);
 
-    // ========== BUSCAS ESPECÍFICAS ==========
+    // Verificar se existe plano para o dente do paciente
+    @Query("SELECT COUNT(p) > 0 FROM PlanoDental p WHERE p.paciente.id = :pacienteId AND p.dente = :dente")
+    boolean existsByPacienteAndDente(@Param("pacienteId") Long pacienteId, @Param("dente") String dente);
 
-    /**
-     * Busca planos ativos de um paciente ordenados por data prevista
-     */
-    @Query("SELECT p FROM PlanoDental p WHERE p.paciente.id = :pacienteId AND p.ativo = true ORDER BY p.dataPrevista ASC")
-    List<PlanoDental> findAtivosByPacienteIdOrderByDataPrevista(@Param("pacienteId") Long pacienteId);
-
-    /**
-     * Busca planos por data prevista entre datas
-     */
-    List<PlanoDental> findByDataPrevistaBetween(LocalDateTime inicio, LocalDateTime fim);
-
-    /**
-     * Busca planos criados entre datas
-     */
-    List<PlanoDental> findByCriadoEmBetween(LocalDateTime inicio, LocalDateTime fim);
-
-    /**
-     * Busca planos por status e urgência
-     */
-    @Query("SELECT p FROM PlanoDental p WHERE p.urgente = true AND p.status = :status")
-    List<PlanoDental> findUrgentesByStatus(@Param("status") StatusPlano status);
-
-    /**
-     * Busca planos urgentes e ativos
-     */
-    List<PlanoDental> findByUrgenteTrueAndAtivoTrue();
-
-    /**
-     * Busca planos por prioridade
-     */
-    List<PlanoDental> findByPrioridadeAndAtivoTrue(String prioridade);
-
-    /**
-     * Busca planos por valor maior que
-     */
-    List<PlanoDental> findByValorFinalGreaterThan(BigDecimal valor);
-
-    /**
-     * Busca planos por valor entre
-     */
-    List<PlanoDental> findByValorFinalBetween(BigDecimal minValor, BigDecimal maxValor);
-
-    // ========== BUSCAS COMBINADAS ==========
-
-    List<PlanoDental> findByPacienteIdAndStatus(Long pacienteId, StatusPlano status);
-    List<PlanoDental> findByDentistaIdAndStatus(Long dentistaId, StatusPlano status);
-    List<PlanoDental> findByPacienteIdAndDentistaIdAndStatus(Long pacienteId, Long dentistaId, StatusPlano status);
-
-    /**
-     * Busca planos por paciente e urgência
-     */
-    List<PlanoDental> findByPacienteIdAndUrgenteTrueAndAtivoTrue(Long pacienteId);
-
-    /**
-     * Busca planos por dentista e urgência
-     */
-    List<PlanoDental> findByDentistaIdAndUrgenteTrueAndAtivoTrue(Long dentistaId);
-
-    // ========== BUSCAS COM MÚLTIPLOS STATUS ==========
-
-    List<PlanoDental> findByStatusInOrderByDataPrevista(List<StatusPlano> statuses);
-    List<PlanoDental> findByStatusInAndAtivoTrueOrderByDataPrevista(List<StatusPlano> statuses);
-
-    // ========== VALIDAÇÕES E VERIFICAÇÕES ==========
-
-    /**
-     * Verifica se existe plano ativo para paciente, dente e procedimento
-     */
-    boolean existsByPacienteIdAndDenteAndProcedimentoAndAtivoTrue(Long pacienteId, String dente, String procedimento);
-
-    /**
-     * Verifica se existe plano com mesmo dente e procedimento (para qualquer paciente)
-     */
-    boolean existsByDenteAndProcedimento(String dente, String procedimento);
-
-    // ========== CONTAGENS E ESTATÍSTICAS ==========
-
-    /**
-     * Conta planos ativos por paciente
-     */
-    @Query("SELECT COUNT(p) FROM PlanoDental p WHERE p.paciente.id = :pacienteId AND p.ativo = true")
-    Long countAtivosByPacienteId(@Param("pacienteId") Long pacienteId);
-
-    /**
-     * Conta planos por status e paciente
-     */
-    @Query("SELECT COUNT(p) FROM PlanoDental p WHERE p.paciente.id = :pacienteId AND p.status = :status")
-    Long countByPacienteIdAndStatus(@Param("pacienteId") Long pacienteId, @Param("status") StatusPlano status);
-
-    /**
-     * Conta planos por status e dentista
-     */
-    @Query("SELECT COUNT(p) FROM PlanoDental p WHERE p.dentista.id = :dentistaId AND p.status = :status")
-    Long countByDentistaIdAndStatus(@Param("dentistaId") Long dentistaId, @Param("status") StatusPlano status);
-
-    /**
-     * Soma valor final dos planos por paciente e status
-     */
-    @Query("SELECT SUM(p.valorFinal) FROM PlanoDental p WHERE p.paciente.id = :pacienteId AND p.status = :status")
-    BigDecimal sumValorFinalByPacienteIdAndStatus(@Param("pacienteId") Long pacienteId, @Param("status") StatusPlano status);
-
-    /**
-     * Soma valor final dos planos por dentista e status
-     */
-    @Query("SELECT SUM(p.valorFinal) FROM PlanoDental p WHERE p.dentista.id = :dentistaId AND p.status = :status")
-    BigDecimal sumValorFinalByDentistaIdAndStatus(@Param("dentistaId") Long dentistaId, @Param("status") StatusPlano status);
-
-    /**
-     * Calcula valor total de todos os planos ativos
-     */
-    @Query("SELECT SUM(p.valorFinal) FROM PlanoDental p WHERE p.ativo = true")
-    BigDecimal sumValorFinalTotal();
-
-    // ========== BUSCAS COM FILTROS AVANÇADOS ==========
-
-    /**
-     * Busca planos com filtros múltiplos
-     */
-    @Query("SELECT p FROM PlanoDental p WHERE " +
-            "(:pacienteId IS NULL OR p.paciente.id = :pacienteId) AND " +
-            "(:dentistaId IS NULL OR p.dentista.id = :dentistaId) AND " +
-            "(:status IS NULL OR p.status = :status) AND " +
-            "(:dente IS NULL OR p.dente = :dente) AND " +
-            "(:procedimento IS NULL OR LOWER(p.procedimento) LIKE LOWER(CONCAT('%', :procedimento, '%'))) AND " +
-            "(:urgente IS NULL OR p.urgente = :urgente) AND " +
-            "(:ativo IS NULL OR p.ativo = :ativo) AND " +
-            "(:dataInicio IS NULL OR p.criadoEm >= :dataInicio) AND " +
-            "(:dataFim IS NULL OR p.criadoEm <= :dataFim) " +
-            "ORDER BY p.criadoEm DESC")
-    List<PlanoDental> findByFiltros(
-            @Param("pacienteId") Long pacienteId,
-            @Param("dentistaId") Long dentistaId,
-            @Param("status") StatusPlano status,
-            @Param("dente") String dente,
-            @Param("procedimento") String procedimento,
-            @Param("urgente") Boolean urgente,
-            @Param("ativo") Boolean ativo,
-            @Param("dataInicio") LocalDateTime dataInicio,
-            @Param("dataFim") LocalDateTime dataFim);
-
-    /**
-     * Busca planos ativos com filtros múltiplos
-     */
-    @Query("SELECT p FROM PlanoDental p WHERE p.ativo = true AND " +
-            "(:pacienteId IS NULL OR p.paciente.id = :pacienteId) AND " +
-            "(:dentistaId IS NULL OR p.dentista.id = :dentistaId) AND " +
-            "(:status IS NULL OR p.status = :status) AND " +
-            "(:dente IS NULL OR p.dente = :dente) AND " +
-            "(:procedimento IS NULL OR LOWER(p.procedimento) LIKE LOWER(CONCAT('%', :procedimento, '%'))) AND " +
-            "(:urgente IS NULL OR p.urgente = :urgente) " +
-            "ORDER BY p.criadoEm DESC")
-    List<PlanoDental> findAtivosByFiltros(
-            @Param("pacienteId") Long pacienteId,
-            @Param("dentistaId") Long dentistaId,
-            @Param("status") StatusPlano status,
-            @Param("dente") String dente,
-            @Param("procedimento") String procedimento,
-            @Param("urgente") Boolean urgente);
-
-    // ========== BUSCAS PARA RELATÓRIOS ==========
-
-    /**
-     * Busca planos com data prevista vencida
-     */
-    @Query("SELECT p FROM PlanoDental p WHERE p.dataPrevista < :dataAtual AND p.status NOT IN :statusExcluidos AND p.ativo = true")
-    List<PlanoDental> findComDataPrevistaVencida(
-            @Param("dataAtual") LocalDateTime dataAtual,
-            @Param("statusExcluidos") List<StatusPlano> statusExcluidos);
-
-    /**
-     * Busca planos por período e status
-     */
-    @Query("SELECT p FROM PlanoDental p WHERE p.criadoEm BETWEEN :inicio AND :fim AND p.status = :status")
-    List<PlanoDental> findByPeriodoEStatus(
-            @Param("inicio") LocalDateTime inicio,
-            @Param("fim") LocalDateTime fim,
-            @Param("status") StatusPlano status);
-
-    // ========== BUSCAS PARA DASHBOARD ==========
-
-    /**
-     * Conta planos por status
-     */
-    @Query("SELECT p.status, COUNT(p) FROM PlanoDental p WHERE p.ativo = true GROUP BY p.status")
-    List<Object[]> countByStatusGroup();
-
-    /**
-     * Busca planos recentes
-     */
-    List<PlanoDental> findTop10ByAtivoTrueOrderByCriadoEmDesc();
-
-    /**
-     * Busca planos urgentes recentes
-     */
-    List<PlanoDental> findTop10ByUrgenteTrueAndAtivoTrueOrderByCriadoEmDesc();
+    // Buscar top procedimentos mais realizados
+    @Query("SELECT p.procedimento, COUNT(p) as quantidade FROM PlanoDental p GROUP BY p.procedimento ORDER BY quantidade DESC")
+    List<Object[]> findTopProcedimentos();
 }
